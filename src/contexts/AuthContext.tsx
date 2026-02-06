@@ -57,7 +57,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [publicKey, setPublicKey] = useState<CryptoKey | null>(null);
 
   // JWT validation public key
-  const publicKeyPEM = `------BEGIN PUBLIC KEY-----
+  const publicKeyPEM = `-----BEGIN PUBLIC KEY-----
 MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAkvyeaWfmnLrbNneMjJ16
 +FeHBSAeheTiaUWGidoBI4sYEHxB3rGlr+7WGMyX4rmfFCUDnCIWGuKt32UoA9CZ
 mgE9JCbmJLM1dR35cN9yEUmXggYXRJB8pMqlt+u3jHRFieLumzk1keEiTCsQqvgs
