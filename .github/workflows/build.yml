@@ -15,7 +15,7 @@ on:
       - mh-dev
 
 env:
-  BASE_IMAGE_NAME: bharat-vistaar-ui
+  BASE_IMAGE_NAME: maha-vistaar-ui
 
 jobs:
   build:
@@ -71,7 +71,7 @@ jobs:
           BUILD_TYPE=$(echo "$BRANCH" | cut -d'-' -f2)
           
           echo "IMAGE_NAME=${ENV_PREFIX}-${{ env.BASE_IMAGE_NAME }}" >> $GITHUB_OUTPUT
-          echo "BUILD_TAG=${ENV_PREFIX}-${BUILD_TYPE}" >> $GITHUB_OUTPUT
+          echo "BUILD_TAG=${BUILD_TYPE}" >> $GITHUB_OUTPUT
           echo "LATEST_TAG=${BUILD_TYPE}-latest" >> $GITHUB_OUTPUT
 
       - name: Download build artifacts
