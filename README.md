@@ -199,6 +199,7 @@ Replace the `publicKeyPEM` in `src/contexts/AuthContext.tsx` with your productio
 const publicKeyPEM = `-----BEGIN PUBLIC KEY-----
 YOUR_PRODUCTION_PUBLIC_KEY_HERE
 -----END PUBLIC KEY-----`;
+
 ```
 
 ### 3. Secure Your Private Key
