@@ -1232,7 +1232,7 @@ export function ChatInterface() {
               <div className="text-xs text-muted-foreground text-center mt-1 flex items-center justify-center">
                 <Info className="h-3 w-3 mr-1 inline-block" />
                 {(t("disclaimerText") as string) ||
-                  "Bharat Vistaar is AI and can make mistakes. Please verify sources."}
+                  "Demo AI is AI and can make mistakes. Please verify sources."}
               </div>
             </div>
           </div>
@@ -1447,7 +1447,7 @@ export function ChatInterface() {
                 <div className="text-[10px] text-muted-foreground text-center mt-2 flex items-center justify-center">
                   <Info className="h-3 w-3 mr-1 inline-block" />
                   {(t("disclaimerText") as string) ||
-                    "Bharat Vistaar is AI and can make mistakes. Please verify sources."}
+                    "Demo AI is AI and can make mistakes. Please verify sources."}
                 </div>
               </div>
             </div>

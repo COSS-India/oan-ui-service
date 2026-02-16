@@ -61,7 +61,7 @@
   "feedbackSubmit": "अभिप्राय सादर करा",
   "feedbackCancel": "रद्द करा",
   "feedbackPlaceholder": "किंवा आम्हाला समस्येबद्दल अधिक सांगा.",
-  "appTitle": "भारत विस्तार - AI",
+  "appTitle": "डेमो - AI",
   "askYourQuestion": "तुमच्या कृषी सहाय्यकाला प्रश्न विचारा",
   "sectionTitleAsk": "विचारा",
   "sectionTitleCapabilities": "क्षमता", 
@@ -114,6 +114,6 @@
     "apiEmptyResponse": {
       "description": "माफ करा, मी सध्या तुमच्या विनंतीवर प्रक्रिया करू शकलो नाही."
     },
-    "appTitle": "भारत विस्तार"
+    "appTitle": "डेमो - AI"
   }
 } 
