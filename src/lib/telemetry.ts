@@ -161,7 +161,7 @@ export const startTelemetry = async (
     uid: userDetailsObj["preferred_username"] || "DEFAULT-USER",
     did: userDetailsObj["email"] || "DEFAULT-USER",
     authtoken: "",
-    host: "/observability-service",
+    host: "https://ask-telemetry.mcp.eco/observability-service",
   };
 
   const startEdata = {};

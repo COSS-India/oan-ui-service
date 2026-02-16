@@ -42,7 +42,7 @@ interface AuthResponse {
 const JWT_STORAGE_KEY = "auth_jwt";
 
 class ApiService {
-  private apiUrl: string = "";
+  private apiUrl: string = "https://ask-api.mcp.eco";
   private locationData: LocationData | null = null;
   private currentSessionId: string | null = null;
   private axiosInstance: AxiosInstance;
