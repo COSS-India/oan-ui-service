@@ -52,19 +52,42 @@ RvnrCqRhNXhmOyqrCTudBT8ePnMYU7H/dpoqF1zpYctDVkaYOf0l/H+uWk55f+Zy
 zZVcpQAi2lTwNQP2teIHqt4YNsOKmX9J2BvczRj4wdCpp84+UkFJ+lVftHbEoxYM
 OnCObibmuJDPvwrkHtACJZFy1Dc371evaaTN3dGE/P7MLXRA+XtInY5lYfsB23/Q
 a37S+srKe59wFypSMOU+ZMvgFA2oK0zA1WEC93000n5HEQMJU8r7pCgKhq7oD8QJ
-hwIDAQAB
+  hwIDAQAB
 -----END PUBLIC KEY-----`;
 
-  // Store JWT in localStorage with expiration
-  const storeJWT = (token: string) => {
+  // Decode JWT to extract expiry claim
+  const getJWTExpiry = (token: string): number | null => {
     try {
-      const now = new Date();
-      const expiryDate = new Date(now);
-      expiryDate.setMinutes(now.getMinutes() + JWT_EXPIRY_MINUTES);
+      const parts = token.split('.');
+      if (parts.length !== 3) return null;
+      
+      const payload = JSON.parse(atob(parts[1]));
+      if (payload.exp) {
+        return payload.exp * 1000; // Convert to milliseconds
+      }
+      return null;
+    } catch {
+      return null;
+    }
+  };
+
+  // Store JWT in localStorage with expiration
+  const storeJWT = (token: string, tokenExpiry?: number) => {
+    try {
+      let expiryDate: number;
+      
+      if (tokenExpiry) {
+        expiryDate = tokenExpiry;
+      } else {
+        const now = new Date();
+        const expiry = new Date(now);
+        expiry.setMinutes(now.getMinutes() + JWT_EXPIRY_MINUTES);
+        expiryDate = expiry.getTime();
+      }
       
       const tokenData = {
         token,
-        expiry: expiryDate.getTime()
+        expiry: expiryDate
       };
       
       localStorage.setItem(JWT_STORAGE_KEY, JSON.stringify(tokenData));
@@ -84,24 +107,35 @@ hwIDAQAB
       // Call /chat/auth to get JWT token
       const newToken = await apiService.fetchAuthToken(browserInfo);
       
+      // Extract expiry from JWT token
+      const tokenExpiry = getJWTExpiry(newToken);
+      
       // Validate and store the new token
       if (importedPublicKey) {
         const result = await validateJWT(newToken, importedPublicKey);
         if (result.isValid) {
-          storeJWT(newToken);
-          createUserFromPayload(result.payload);
+          storeJWT(newToken, tokenExpiry || undefined);
+          createUserFromPayload(result.payload, true);
         } else {
-          console.error('Received invalid token from /chat/auth');
+          // Even if validation fails, store the token (it may be a guest token)
+          console.warn('Token validation failed, storing as guest token');
+          storeJWT(newToken, tokenExpiry || undefined);
+          setUser({
+            username: 'Guest User',
+            email: 'guest@example.com',
+            authenticated: true,
+            isGuest: true,
+          });
         }
       } else {
         // If public key is not available, store token anyway
-        storeJWT(newToken);
-        // Create a basic authenticated user
+        storeJWT(newToken, tokenExpiry || undefined);
+        // Create a guest user since this token is from /api/token (guest endpoint)
         setUser({
-          username: 'user',
-          email: 'user@example.com',
+          username: 'Guest User',
+          email: 'guest@example.com',
           authenticated: true,
-          isGuest: false,
+          isGuest: true,
         });
       }
     } catch (error) {
@@ -174,9 +208,14 @@ hwIDAQAB
   }, [publicKeyPEM, fetchAndStoreNewToken]);
 
   // Create a user object from JWT payload
-  const createUserFromPayload = (payload: JWTPayload | null) => {
+  const createUserFromPayload = (payload: JWTPayload | null, isGuest: boolean = false) => {
     if (!payload) {
-      setUser(null);
+      setUser({
+        authenticated: false,
+        username: 'Guest User',
+        email: 'guest@example.com',
+        isGuest: true,
+      });
       return;
     }
     
@@ -196,7 +235,7 @@ hwIDAQAB
       authenticated: true,
       username: name,
       email: email,
-      isGuest: false
+      isGuest: isGuest
     });
   };
 
