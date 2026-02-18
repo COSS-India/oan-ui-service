@@ -35,7 +35,7 @@ export interface AdvisoryResult {
 
 // ---- API Base URLs ----
 
-const PEST_API_BASE = 'https://farmers-app-api.mahapocra.gov.in';
+const PEST_API_BASE = 'https://stage-farmers-app-api.mahapocra.gov.in';
 const PREDICT_API_BASE = 'https://ndksp-tih.mahapocra.gov.in';
 
 // ---- Fallback Crops (used when API is unavailable) ----
