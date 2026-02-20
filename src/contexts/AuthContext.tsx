@@ -46,13 +46,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   // JWT validation public key
   const publicKeyPEM = `-----BEGIN PUBLIC KEY-----
-MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAoiAT5pkWCk7KgBXDFO6C
-FHo1fmVMUHOCDXJ1EcAb11REiSHgxlP9TPLCs8qPSe5eeJAHGn9sqB0p0jC8cWzh
-RvnrCqRhNXhmOyqrCTudBT8ePnMYU7H/dpoqF1zpYctDVkaYOf0l/H+uWk55f+Zy
-zZVcpQAi2lTwNQP2teIHqt4YNsOKmX9J2BvczRj4wdCpp84+UkFJ+lVftHbEoxYM
-OnCObibmuJDPvwrkHtACJZFy1Dc371evaaTN3dGE/P7MLXRA+XtInY5lYfsB23/Q
-a37S+srKe59wFypSMOU+ZMvgFA2oK0zA1WEC93000n5HEQMJU8r7pCgKhq7oD8QJ
-  hwIDAQAB
+MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA4FNoy7U5iq8x5FafwDbl
+MO7q4ljd168qj9gac3KeehufnwdiyCYDXPwgXORVfvnsucEFi+uTYyttcGKPnJi7
+ESPbffSmBi7W/nErcMb9W3dnNwdVfJQ2I7sybeWs+SuUMsvzT/vfFpcTOtTwLCFP
+DBJv8uyz4STgbSOXCot3bnC2pqYmMrDJYP26b6QItg+RteydzwbRyYA7QtA7gfyG
+x8p12QikUpIdMZ0n45JRanedTh3eQReooAZ6nAPsmpMzqhLnSOZukhiUuP3cP6qH
+XpfFQM3TBi3vdels4X+CN2xjAxIKZmZUoE7/UCSCoJP40Mp2Xb+xmGjEKwSsYYRY
+qwIDAQAB
 -----END PUBLIC KEY-----`;
 
   // Decode JWT to extract expiry claim
