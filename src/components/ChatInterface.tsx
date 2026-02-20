@@ -36,7 +36,8 @@ interface Message {
   questionId?: string;
   questionText?: string;
   isErrorMessage?: boolean;
-    errorTranslationKey?: string;
+  errorTranslationKey?: string;
+  responseLanguage?: string;
 }
 
 interface ChatResponse {
@@ -370,7 +371,8 @@ export function ChatInterface() {
         isLoading: false,
         isStreaming: true,
         questionId,
-        questionText: text
+        questionText: text,
+        responseLanguage: targetLang
       });
       
       const response = await apiService.sendUserQuery(
@@ -386,7 +388,8 @@ export function ChatInterface() {
             text: streamingText,
             isStreaming: true,
             questionId,
-            questionText: text
+            questionText: text,
+            responseLanguage: targetLang
           });
         }
       ) as ChatResponse;
@@ -397,7 +400,8 @@ export function ChatInterface() {
           text: response.response,
           isStreaming: false,
           questionId,
-          questionText: text
+          questionText: text,
+          responseLanguage: targetLang
         });
         
         if (user?.is_guest_user) {
@@ -1011,6 +1015,7 @@ export function ChatInterface() {
                   responseText={message.text}
                   isErrorMessage={message.isErrorMessage}
                   errorTranslationKey={message.errorTranslationKey}
+                  responseLanguage={message.responseLanguage}
                 />
               ))}
               <div ref={messagesEndRef} className="h-8" />
