@@ -356,5 +356,39 @@
     "thankyou": "Thank you for your patience!",
     "estimatedTime": "Estimated downtime: 2-3 hours",
     "contact": "For urgent queries, please contact support."
+  },
+  "pestDetection": {
+    "title": "Pest & Disease Identification",
+    "selectCrop": "Select Crop",
+    "sowingDate": "Sowing Date",
+    "plantPestImage": "Plant/Pest Image",
+    "captureImage": "Capture Image",
+    "selectFromGallery": "Select From Gallery",
+    "imageFormatHint": "Only JPEG, PNG, and JPG formats are allowed. Max 10 MB.",
+    "analyzeSubmit": "Analyze & Submit",
+    "analyzing": "Analyzing your crop image...",
+    "errorGeneric": "Could not analyze the image. Please try again.",
+    "fileTooLarge": "Image exceeds 10 MB limit.",
+    "invalidFormat": "Please select a JPEG, PNG, or JPG image.",
+    "crops": [
+      { "id": 1, "name": "Maize" },
+      { "id": 2, "name": "Paddy" },
+      { "id": 3, "name": "Wheat" },
+      { "id": 4, "name": "Sorghum" },
+      { "id": 5, "name": "Gram" },
+      { "id": 6, "name": "Pigeon pea (Tur)" },
+      { "id": 7, "name": "Groundnut" },
+      { "id": 8, "name": "Soybean" },
+      { "id": 9, "name": "Mustard" },
+      { "id": 10, "name": "Sugarcane" },
+      { "id": 11, "name": "Cotton" },
+      { "id": 12, "name": "Potato" },
+      { "id": 13, "name": "Onion" },
+      { "id": 14, "name": "Tomato" },
+      { "id": 15, "name": "Brinjal" },
+      { "id": 16, "name": "Grapes" },
+      { "id": 17, "name": "Apple" },
+      { "id": 18, "name": "Mango" }
+    ]
   }
 }
