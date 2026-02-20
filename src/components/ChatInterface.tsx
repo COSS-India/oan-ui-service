@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Send, Mic, MicOff, ChevronUp, ChevronLeft, ChevronRight, Info } from "lucide-react";
+import { Send, Mic, MicOff, ChevronUp, ChevronLeft, ChevronRight, Info, Leaf } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -24,6 +24,8 @@ import { cn } from "@/lib/utils";
 import { useTts } from "@/hooks/use-tts";
 import { FeedbackForm } from "@/components/FeedbackForm";
 import { useAuth } from "@/contexts/AuthContext";
+import { PestDetectionDialog } from "@/components/PestDetectionDialog";
+import { predictDisease, getAdvisory, storeResponse, FALLBACK_CROPS } from "@/lib/pest-detection-api";
 
 interface Message {
   id: string;
@@ -38,6 +40,7 @@ interface Message {
   isErrorMessage?: boolean;
   errorTranslationKey?: string;
   responseLanguage?: string;
+  imageUrl?: string;
 }
 
 interface ChatResponse {
@@ -113,6 +116,10 @@ export function ChatInterface() {
   const feedbackMediaRecorderRef = useRef<MediaRecorder | null>(null);
   const feedbackAudioStreamRef = useRef<MediaStream | null>(null);
   const [feedbackAudioLevel, setFeedbackAudioLevel] = useState(0.5);
+
+  // Pest detection state
+  const [showPestDetectionDialog, setShowPestDetectionDialog] = useState(false);
+  const [isPestDetectionSubmitting, setIsPestDetectionSubmitting] = useState(false);
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
@@ -530,6 +537,132 @@ export function ChatInterface() {
     }
   };
 
+  // Pest detection submit handler
+  const handlePestDetectionSubmit = async (
+    cropId: string,
+    cropName: string,
+    sowingDate: string,
+    image: File
+  ) => {
+    setIsPestDetectionSubmitting(true);
+    setShowPestDetectionDialog(false);
+    setIsMessageLoading(true);
+
+    // Create a URL for the image to display in chat
+    const imageObjectUrl = URL.createObjectURL(image);
+
+    // Resolve English crop name for the API (API requires English names)
+    const englishCrop = FALLBACK_CROPS.find((c) => String(c.crop_id) === cropId);
+    const cropTypeForApi = englishCrop ? englishCrop.crop_name : cropName;
+
+    // Add user message with image, crop name and sowing date (right side)
+    if (!inputPositioned) {
+      setInputPositioned(true);
+    }
+    addMessage(
+      `🌿 **${cropName}**\n📅 ${sowingDate}`,
+      true,
+      { imageUrl: imageObjectUrl }
+    );
+
+    // Add a loading bot message (left side)
+    const loadingMessageId = addMessage("", false, { isLoading: true });
+    scrollToBottomOfMessages();
+
+    try {
+      // Step 1: Predict (always use English crop name for API)
+      const prediction = await predictDisease(cropTypeForApi, sowingDate, image, cropId);
+
+      if (!prediction.success || !prediction.data?.predictions?.length) {
+        updateMessage(loadingMessageId, {
+          text: `### 🌿 Pest/Disease: Unknown Disease\n\nThe system could not identify a specific disease for **${cropName}**.\nPlease try again with a clearer image or consult a local agriculture officer.`,
+          isLoading: false,
+          isStreaming: false,
+        });
+        // Store even unsuccessful responses
+        try {
+          await storeResponse(
+            image,
+            cropId,
+            sowingDate,
+            false,
+            JSON.stringify(prediction),
+            user?.username || "0",
+            "0"
+          );
+        } catch (storeErr) {
+          console.error("Failed to store response:", storeErr);
+        }
+        return;
+      }
+
+      const topPrediction = prediction.data.predictions[0];
+      const diseaseId = topPrediction.disease_id;
+      const diseaseType = topPrediction.disease_type;
+      const confidence = (topPrediction.confidence_score * 100).toFixed(1);
+
+      // Step 2: Get advisory
+      let advisory: { preventive_measures: string; curative_measures: string } = {
+        preventive_measures: "No information available.",
+        curative_measures: "No information available.",
+      };
+      try {
+        advisory = await getAdvisory(diseaseId);
+      } catch (advErr) {
+        console.error("Failed to get advisory:", advErr);
+      }
+
+      // Step 3: Store response
+      try {
+        await storeResponse(
+          image,
+          cropId,
+          sowingDate,
+          true,
+          JSON.stringify(prediction),
+          user?.username || "0",
+          diseaseId
+        );
+      } catch (storeErr) {
+        console.error("Failed to store response:", storeErr);
+      }
+
+      // Format the result as markdown
+      const resultMarkdown = [
+        `### 🌿 Pest/Disease: **${diseaseType}**`,
+        `**Confidence:** ${confidence}%`,
+        `**Crop:** ${cropName} | **Sowing Date:** ${sowingDate}`,
+        ``,
+        `---`,
+        ``,
+        `#### 🛡️ Preventive Measures`,
+        advisory.preventive_measures,
+        ``,
+        `#### 💊 Curative Measures`,
+        advisory.curative_measures,
+      ].join("\n");
+
+      // Update the loading message with the final result
+      updateMessage(loadingMessageId, {
+        text: resultMarkdown,
+        isLoading: false,
+        isStreaming: false,
+      });
+    } catch (error) {
+      console.error("Pest detection failed:", error);
+      updateMessage(loadingMessageId, {
+        text: "",
+        isLoading: false,
+        isErrorMessage: true,
+        errorTranslationKey: "pestDetection.errorGeneric",
+      });
+      forceUIRefresh();
+    } finally {
+      setIsMessageLoading(false);
+      setIsPestDetectionSubmitting(false);
+    }
+  };
+
   // Feedback handling
   const handleDislike = (messageId: string, questionText: string, responseText: string) => {
     const message = messages.find(m => m.id === messageId);
@@ -922,6 +1055,16 @@ export function ChatInterface() {
               />
               <div className="flex flex-shrink-0 gap-2">
                 <Button
+                  onClick={() => setShowPestDetectionDialog(true)}
+                  variant="outline"
+                  size="icon"
+                  className="rounded-full flex-shrink-0 h-9 w-9"
+                  aria-label="Pest Detection"
+                  disabled={isMessageLoading}
+                >
+                  <Leaf className="h-4 w-4" />
+                </Button>
+                <Button
                   onClick={toggleRecording}
                   variant={isRecording ? "destructive" : "outline"}
                   size="icon"
@@ -1016,6 +1159,7 @@ export function ChatInterface() {
                   isErrorMessage={message.isErrorMessage}
                   errorTranslationKey={message.errorTranslationKey}
                   responseLanguage={message.responseLanguage}
+                  imageUrl={message.imageUrl}
                 />
               ))}
               <div ref={messagesEndRef} className="h-8" />
@@ -1075,6 +1219,16 @@ export function ChatInterface() {
                     maxRows={6}
                   />
                   <Button
+                    onClick={() => setShowPestDetectionDialog(true)}
+                    variant="outline"
+                    size="icon"
+                    className="rounded-full flex-shrink-0"
+                    aria-label="Pest Detection"
+                    disabled={isMessageLoading}
+                  >
+                    <Leaf className="h-5 w-5" />
+                  </Button>
+                  <Button
                     onClick={toggleRecording}
                     variant={isRecording ? "destructive" : "outline"}
                     size="icon"
@@ -1119,6 +1273,12 @@ export function ChatInterface() {
         toggleFeedbackRecording={toggleFeedbackRecording}
         feedbackAudioLevel={feedbackAudioLevel}
         submitFeedback={submitFeedback}
+      />
+      <PestDetectionDialog
+        open={showPestDetectionDialog}
+        onOpenChange={setShowPestDetectionDialog}
+        onSubmit={handlePestDetectionSubmit}
+        isSubmitting={isPestDetectionSubmitting}
       />
     </div>
   );

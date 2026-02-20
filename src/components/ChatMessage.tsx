@@ -38,6 +38,7 @@ interface ChatMessageProps {
   isErrorMessage?: boolean;
   errorTranslationKey?: string;
   responseLanguage?: string;
+  imageUrl?: string;
 }
 
 export function ChatMessage({
@@ -56,6 +57,7 @@ export function ChatMessage({
   isErrorMessage = false,
   errorTranslationKey,
   responseLanguage,
+  imageUrl,
 }: ChatMessageProps) {
   const [isLiked, setIsLiked] = useState(false);
   const [isDisliked, setIsDisliked] = useState(false);
@@ -328,6 +330,14 @@ export function ChatMessage({
               ? "bg-primary text-primary-foreground rounded-tr-none word-break-break-word"
               : `${displayMessage.length > 0 ? "bg-muted" : "hidden"} rounded-tl-none`
           )}>
+            {/* Render attached image in user messages */}
+            {isUser && imageUrl && (
+              <img
+                src={imageUrl}
+                alt="Pest detection"
+                className="w-full max-w-[200px] max-h-[160px] object-cover rounded-lg mb-2"
+              />
+            )}
             {isLoading && !isErrorMessage ? (
               <div className={cn(
                 "flex items-center space-x-2 h-6"
