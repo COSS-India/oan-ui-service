@@ -135,7 +135,11 @@ class ApiService {
 
       if (onStreamData) {
         // Handle streaming response
-        const response = await fetch(`${this.apiUrl}/api/chat/?${new URLSearchParams(params)}`, {
+        // Use custom endpoint and user_id for Bhili Language
+        const endpointPath = targetLang === 'bhb' ? '/api/chat-bhili/' : '/api/chat/';
+        const apiParams: Record<string, string> = { ...params } as Record<string, string>;
+
+        const response = await fetch(`${this.apiUrl}${endpointPath}?${new URLSearchParams(apiParams)}`, {
           method: 'GET',
           headers: headers          
         });
@@ -169,11 +173,14 @@ class ApiService {
         return { response: fullResponse, status: 'success' };
       } else {
         // Regular non-streaming request
+        const endpointPath = targetLang === 'bhb' ? '/api/chat-bhili/' : '/api/chat/';
+        const apiParams: Record<string, string> = { ...params } as Record<string, string>;
+
         const config = {
-          params,
+          params: apiParams,
           headers: this.getAuthHeaders()
         };
-        const response = await this.axiosInstance.get('/api/chat/', config);
+        const response = await this.axiosInstance.get(endpointPath, config);
         return response.data;
       }
     } catch (error) {

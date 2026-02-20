@@ -1,0 +1,252 @@
+{
+  "welcome": "राम राम! मु तमारो खेती सहायक छुं। आज, मु तमारी कीं मदद कर सकू?",
+  "inputPlaceholder": "तमारो सवाळ पुछो...",
+  "startRecording": "रेकॉर्डिंग सरू करो",
+  "stopRecording": "रेकॉर्डिंग बंद करो",
+  "send": "संदेश मेल्हो",
+  "Listen": "हामळो",
+  "selectLanguage": "भाखा चूनो",
+  "disclaimerText": "AI-बणावेल जाणकारी। किरपा करन अलग थी जाच करो.",
+  "questions": [
+    "खेडवा थी लई ने काटवा सुधी, घऊं पकाववा नी सबथी हारी रीत कसी छे?",
+    "घऊं जेवी फसल म पावडरी मिल्ड्यू जेवा सादारण रोग न कीं रोकवुं?",
+    "वधता मौसम म शेरडी नी फसल म खातर न कीं नाखवुं?"
+  ],
+  "capabilities": [
+    "दीवील जबाव प्रमाणीत युनिव्हर्सिटी डायरी अन फसल नी प्रमाणीत रीत पर आधार राखे छे.",
+    "तमे फसल नी रीत, किडा/रोग रोकवा, खातर नी रीत अन काटवा नी रीत बारे म पुछी सको छो.",
+    "ई सिस्टम सादारण खेती नी सला आपी सके छे, पण अलग जवाव नई आपे."
+  ],
+  "limitations": [
+    "ई जबाव खाली चोपाडी अन अनुभव पर आदार राखे छे अन ईम आज नुं मौसम, माटी के बजार भाव नी जाणकारी नथी.",
+    "हमेखा ईलाका अन अलग खेत नी जाणकारी अत्तार मळे नी.",
+    "होर जाणकारी वास्ते एप म मळेल अधिकृत एसओपी (SOP) कागद न देखो."
+  ],
+  "feedbackOptions": [
+    "जाणकारी गल्त छे",
+    "जबाव काम ना नथी",
+    "मारा सवाळ नो जबाव अलग छे.",
+    "भाखा के बोलवा नुं ढंग बरोबर नथी.",
+    "होरी कोई वात"
+  ],
+  "feedbackTitle": "राय आपो",
+  "feedbackDescription": "अमकन माफ करो, जबाव काम नो नथी. किरपा करन अमकन केई भूल छे ती को जेथी अमी सुधार कर सकी.",
+  "feedbackSubmit": "राय मेलो",
+  "feedbackCancel": "रद्द करो",
+  "feedbackPlaceholder": "के अमकन समस्या नी बारे म होर को.",
+  "appTitle": "महाविस्तार - AI",
+  "askYourQuestion": "तमारा खेती सहायक ने सवाळ पुछो",
+  "copyMessage": "संदेश कॉपी करो",
+  "likeMessage": "संदेश पसंद करो",
+  "dislikeMessage": "नापसंद करो",
+  "settings": "सेटिंग्ज",
+  "theme": "थीम",
+  "toast": {
+    "locationPermissionDenied": {
+      "title": "जगा नी परवानगि ना पाडी",
+      "description": "जगा जोवानी परवानगि ना पाडी छे. मौसम नी जाणकारी नई मळे."
+    },
+    "locationUnavailable": {
+      "title": "जगा मळति नथी.",
+      "description": "जगा अत्तार मळत नथी. मौसम नी जाणकारी नई मळे."
+    },
+    "locationTimeout": {
+      "title": "जगा मळवा म वखत लाग्यो.",
+      "description": "तमारी जगा मळवा म बो वखत लाग्यो. फरी थी कोशिश करो."
+    },
+    "locationError": {
+      "title": "जगा नी गल्ती",
+      "description": "जगा नी गल्ती छे. मौसम नी जाणकारी नई मळे."
+    },
+    "locationNotSupported": {
+      "title": "जगा जोवातु नथी.",
+      "description": "तमारो ब्राउझर जगा नथी देखीडत. मौसम नी जाणकारी नई मळे."
+    },
+    "feedbackThankYou": {
+      "title": "तमारी राय वास्ते आभारी छुं! अमकन खुसी छे के आ जबाव काम आयो.",
+      "description": "तमारी राय थकी अमे अमारा जबाव म सुधार करसु."
+    },
+    "feedbackSubmitted": {
+      "title": "तमारी राय वास्ते आभारी छुं. अमे अमारा जबाव सुधारवा वास्ते आ वापरसु.",
+      "description": "तमारी राय थकी अमे अमारा जबाव म सुधार करसु."
+    },
+    "messageCopied": {
+      "title": "संदेश कॉपी किदो",
+      "description": "संदेश तमारी क्लिपबोर्ड पर कॉपी थई ग्यो छे."
+    },
+    "errorPlayingAudio": {
+      "title": "ऑडिओ वाजवा म गल्ती.",
+      "description": "ऑडिओ वाजवा म गल्ती आयरी छे. फरी कोशिश करो."
+    },
+    "apiError": {
+      "description": "माफ करो, तमारी वात पर काम करवाम गल्ती आयरी छे. फरी कोशिश करो."
+    },
+    "apiEmptyResponse": {
+      "description": "माफ करो, मु अत्तार तमारी वात नी पुरा नई कर सको."
+    },
+    "rateLimitError": {
+      "title": "किरपा करन वात जोवो",
+      "description": "आज पुछवा नी हद पुंगि गई छे. किरपा करन MahaVISTAAR AI अ‍ॅप नी होरी चीझु वाप्रो."
+    },
+    "appTitle": "महाविस्तार"
+  },
+  "variables": {
+    "crop": [
+      "घऊं", "चोखा", "मपा", "चणा", "तुवेर", "मोग", "अडद", "कुळथी", "मटकी", "मसूर", "वटाणा",
+      "जुवार", "बाजरी", "नागली", "कांग", "सावा", "कोद्रा", "वरी",
+      "मंगफळी", "सोयाबीन", "करडई", "जवस", "तल", "राई", "एरंडा",
+      "बटाका", "रताळु", "कांदा", "मुळा", "गाजर", "बीट", "हळदर", "आदु",
+      "कपास", "शेरडी", "मेथी", "धाणा", "माठ", "सरगवा नी पत्ती", "सुरण", "लसण",
+      "टमेटा", "वेंगण", "मर्ची", "भेंडा", "गुवार", "चोळी", "भूपल मर्ची", "करेला",
+      "दुधी", "तूरीया", "गिसकु", "कोळु", "काकडी", "पडोळ", "परवर",
+      "कोबीज", "फ्लावर", "ब्रोकोली"
+    ],
+    "fruit crop": [
+      "आंबो", "केळा", "दुराख", "संत्रा", "मोसंबी", "दाडम", "जामफळ", "सीताफळ", "अंजीर",
+      "स्ट्रॉबेरी", "चीकू", "फणस", "अनेनेस", "पपई", "आंवळा", "कोठु", "बोर", "आंबली",
+      "जांबु", "कलिंगड", "टेटी", "नाळीएर", "काजु"
+    ],
+    "Flower crop": [
+      "गुलाब", "गलगोटा", "मोगरो", "शेवंती", "निशिगंध", "तगर", "अबोली", "जरबेरा"
+    ],
+    "market": [
+      "लासलगाव", "वाशी", "पुणे", "कोल्हापूर", "नागपूर", "सोलापूर", "एपीएमसी मुंबई"
+    ],
+    "district": [
+      "नाशिक", "पुणे", "औरंगाबाद", "नागपूर", "कोल्हापूर", "सातारा", "सांगली", "अहमदनगर", "सोलापूर", "ठाणे"
+    ],
+    "animal": [
+      "गाय", "भेंस", "बकरी", "गेंटा", "मुरगी", "डुक्कर", "घोडो", "उंठ", "गधेडो", "बदक", "ससलो", "बळद"
+    ],
+    "Scheme name": [
+      "पीएम-किसान", "पीएमएफबीवाय", "केसीसी", "मृदा आरोग्य पत्रिका", "एटीएमए", "एआयएफ"
+    ]
+  },
+  "qa": {
+    "market.price.today": "आज [market] म [crop] नो भाव कीं छे?",
+    "market.rates.nearest_mandi": "मारी कनी नि मंडी म [crop] नो दर देखाडो.",
+    "market.price.modal": "[district] म [crop] नो सादारण भाव कीं छे?",
+    "market.price.factors_affecting": "[crop] ना बाजारभाव पर कसा असर पडी रेला छे?",
+    "market.price.daily_updates": "[crop] वास्ते दररोज बाजारभाव जाणकारी कीं मळु?",
+    
+    "livestock.milk.increase_production": "मु [animal] ना दुध नुं उत्पादन कीं वधारु?",
+    "livestock.health.mastitis_treatment": "[animal] म मस्टायटिस (कासदाह) वास्ते कसला इलाज छे?",
+    "livestock.vaccines.schedule_year": "[animal] वास्ते आखु वरेह कसी लसी (रसी) जोवे?",
+    "livestock.feed.silage_prep": "[animal] वास्ते उच्च प्रती नो सायलेज कीं तयार करवानो?",
+    "livestock.benefits.general": "[animal] पालवा नुं फायदो कीं छे?",
+    "livestock.feed.ration_balancing": "[animal] वास्ते बरोबर खावानुं कीं छे?",
+    "livestock.health.common_diseases_prevention": "[animal] म सादारण बिमारी कसी ने तीने कीं अटकाववानुं?",
+    "livestock.care.newborn_calves": "नवा जणमेल [animal] बाळकान कीं साचववानुं?",
+    "livestock.health.lsd_protection": "[animal] न लम्पी स्किन जेवा रोग थी कीं बचाववानुं?",
+    "livestock.health.bloat_treatment": "[animal] म पेट फुगवा पर कसी दवा छे?",
+    "livestock.health.parasite_signs": "[animal] म परजीवी (जिवाणु) थवा नी निशानी कसी छे?",
+    "livestock.environment.methane_reduce": "[animal] मां थी मिथेन गेस कीं ओछो करु?",
+    "livestock.breeding.artificial_insemination": "[animal] म कृत्रिम रेतन (बिजदान) कीं छे?",
+    "livestock.biosecurity.measures": "[animal] वास्ते जैवसुरक्षा रीत कसी छे?",
+    "livestock.health.health_calendar_importance": "[animal] वास्ते आरोग्य दिनदर्शिका कां जरुरी छे?",
+    
+    "weather.forecast.5day": "मारा ईलाका म आगला ५ દાડા नो मौसम अंदाज कीं छे?",
+    "weather.rain.tomorrow": "मारा ईलाका म काल वारह (पाऊस) पडहे का?",
+    "weather.alert.hailstorm": "या आठवडीया म गारा पडवा नी वात छे का?",
+    "weather.today.metrics": "आज नुं तापमान, आर्द्रता अन पवन नी गती कतरी छे?",
+    "weather.irrigation.recommendation": "मौसम अंदाजानुसार मु आज [crop] न पाणी पाऊ का?",
+    
+    "fruit.fertilizer.recommendations": "[fruit crop] वास्ते सबथी हारी खातर शिफारस कसी छे?",
+    "fruit.pest.fruit_fly_control": "[fruit crop] म फळ माशी नी कीं रोक करवानी?",
+    "fruit.irrigation.schedule": "[fruit crop] वास्ते बरोबर पाणी पावा नो वखत कीं छे?",
+    "fruit.pruning.methods": "[fruit crop] म छांटणी कीं करवानी?",
+    "fruit.nutrients.deficiency_identification": "[fruit crop] म पोषण ओछो छे ई कीं ओळखवानुं?",
+    "fruit.planting.spacing_recommended": "[fruit crop] वास्ते केतलू अंतर राखवानुं?",
+    "fruit.flowering.management": "[fruit crop] म फुलोरा अन फळ नी सारसंभाळ कीं करवानी?",
+    "fruit.diseases.common": "[fruit crop] न कसी सादारण बिमारी थाय छे?",
+    "fruit.diseases.fungicides_effective": "[fruit crop] बिमारी पर कसी बुरशीनाशक दवा हारी छे?",
+    "fruit.irrigation.drip_recommendations": "[fruit crop] वास्ते ठिबक (पाणी नी बुंद) नी शिफारस कसी छे?",
+    "fruit.pest.aphids_thrips_control": "[fruit crop] म मावा अन फुलकिडे कीं रोकी सकाय?",
+    "fruit.harvest.best_time": "[fruit crop] तोडवा वास्ते सबथी हारो वखत कीं छे?",
+    "fruit.postharvest.loss_reduction": "[fruit crop] तोडीये पसी नुकसान कीं रोकी सकाय?",
+    "fruit.thinning.definition_importance": "[fruit crop] म फळ कम करवानुं कीं छे अन ती कां जरुरी छे?",
+    "fruit.quality.size_improvement": "[fruit crop] नी गोटी अन गुणवत्ता कीं वधारवानि?",
+    "fruit.intercropping.options": "[fruit crop] हाते कसी आंतरपीक लेवाय?",
+    "fruit.soil.requirements": "[fruit crop] वास्ते जमीन कसी जोवे?",
+    "fruit.postharvest.shelf_life_and_increase": "[fruit crop] केडला दाडी टके छे अन तीने कीं वधारवानुं?",
+    "fruit.nutrients.micronutrient_recommendations": "[fruit crop] वास्ते सूक्ष्मअन्नद्रव्य (नाना पोषण) शिफारस कसी छे?",
+    "fruit.bearing.alternate_management": "[fruit crop] म फळधारणा नी व्यवस्था कीं करवानी?",
+    "fruit.growth_regulators.role": "[fruit crop] म वधवा रोकवा नी वात कीं छे?",
+    "fruit.planting.season_recommended": "[fruit crop] वास्ते शिफारस करेलो वाववा नो मौसम कीं छे?",
+    "fruit.yield.average_per_acre": "प्रति एकर [fruit crop] नो सरासरी उत्पन्न कतलु छे?",
+    "fruit.export.quality_obtainment": "[fruit crop] म निर्यात लायक दर्जा कीं मळे?",
+    "fruit.organic.practices": "[fruit crop] वाववा वास्ते सेंद्रिय रीत कसी छे?",
+    
+    "schemes.pm_kisan.about": "पीएम-किसान योजना कीं छे?",
+    "schemes.pmfby.apply": "प्रधानमंत्री फसल विमा योजना वास्ते अर्ज कीं करवानो?",
+    "schemes.agristack.eligibility_check": "ॲग्रीस्टॅक वाप्रिन मु कसी योजना वास्ते लायक छुं ई कीं जोवानुं?",
+    "schemes.mahadbt.status_check": "मारा महाडीबीटी अनुदान अर्ज नी स्थिती कीं छे?",
+    "schemes.soil_health_card.guidelines": "मृदा आरोग्य पत्रिका योजना ना नियम कीं छे?",
+    "schemes.machinery.subsidy_how_to_get": "खेती ना मशीन वास्ते [Scheme name] योजना म अनुदान कीं मळे?",
+    "schemes.aif.about_and_eligibility": "कृषी पायाभूत सुविधा निधी कीं छे अन कोण अर्ज कर सके छे?",
+    "schemes.atma.benefits": "मारा जिलहा म आत्मा योजना नो मन कीं फायदो थाहे?",
+    "schemes.nbm.about": "राष्ट्रीय बांबू मिशन बारे म जाणकारी आपो.",
+    "schemes.organic.certification_apply": "सेंद्रिय खेती प्रमाणपत्र योजना वास्ते अर्ज कीं करवानो?",
+    
+    "crop.fertilizer.latest_recommendations": "[crop] वास्ते नवी खातर शिफारस कसी छे?",
+    "crop.varieties.high_yielding": "[crop] नी उंची मिळकत वाळी जात कसी छे?",
+    "crop.sowing.best_practices": "[crop] वास्ते सर्वोत्तम वावनी रीत कसी छे?",
+    "crop.seed.rate_ideal": "[crop] वास्ते शिफारस करेलो बी नो दर कतलो छे?",
+    "crop.seed.treatment_method": "[crop] वास्ते बीजप्रक्रिया (बी नी दवा) नी रीत कीं छे?",
+    "crop.irrigation.schedule": "[crop] वास्ते पाणी पावा नो वखत कीं छे?",
+    "crop.weeds.management_practices": "[crop] म निंदण (कचरो) काडवा नी रीत कसी छे?",
+    "crop.nutrients.deficiency_symptoms": "[crop] म पोषण कम थावा नी निशानी कसी छे?",
+    "crop.biopesticides.effective_for": "[कीड किंवा रोगाचे नाव] पर कसी जैविक दवा हारी छे?",
+    "crop.ipm.definition": "[crop] वास्ते एकात्मिक कीड व्यवस्थापन (आयपीएम) कीं छे?",
+    "crop.pests.common_and_control": "[crop] म सादारण किडा अन तिनुं रोकना कीं छे?",
+    "crop.diseases.common_and_control": "[crop] म सादारण रोग अन तिनुं रोकना कीं छे?",
+    "crop.intercropping.options": "[crop] हाते कसी होर फसल लेवाय?",
+    "crop.planting.spacing_recommended": "[crop] वास्ते शिफारस करेलो अंतर कतलु छे?",
+    "crop.organic.practices": "[crop] वाववा वास्ते सेंद्रिय रीत कसी छे?",
+    "crop.climate.ideal": "[crop] वास्ते मौसम कसु जोवे?",
+    "crop.growth_regulators.role": "[crop] म वधवा रोकवा नी वात कीं छे?",
+    "crop.postharvest.shelf_life_and_increase": "[crop] कतलो वखत टके छे अन तीने कीं वधारवाय?",
+    "crop.residue.management_post_harvest": "[crop] काडिया पसी कचरा नी व्यवस्था कीं करवानी?",
+    "crop.planting.seasons": "[crop] वास्ते वाववा ना मौसम कसा छे?",
+    "crop.harvest.recommended_practices": "[crop] काटवा वास्ते शिफारस करेली रीत कसी छे?",
+    "crop.postharvest.loss_reduction": "[crop] काटिया पसी नुकसान कीं रोकी सकाय?",
+    "crop.export.potential": "[crop] नुं निर्यात करवाणी क्षमता कीं छे?",
+    "crop.storage.long_term_safe": "[crop] लांबा वखत सुदी कीं साचवाय?",
+    "crop.seed.production_how_to": "[crop] नुं બीयाરણ કीं उबजाववानुं?",
+    "crop.economics.cost_of_cultivation": "[crop] नी बावायम कतलो खर्च आवे छे?",
+    "crop.value_addition.options": "[crop] म मूल्यवर्धन (नफा वधारवा) ना केडा रस्ता छे?",
+    "crop.uses.medicinal": "[crop] ना दवाई ना उपयोग कसा छे?",
+    "crop.properties.aromatic": "[crop] ना सुगंधी गुण कसा छे?",
+    "crop.organic.how_to_grow": "[crop] सेंद्रिय रीत थी कीं वाववी?",
+    "crop.mechanization.role": "[crop] खेती म मशीन नो कीं रोल छे?",
+    "crop.government.recommendations": "[crop] वास्ते सरकार नी शिफारस कसी छे?",
+    "crop.insurance.role": "[crop] वास्ते फसल विमा नी भूमिका कीं छे?",
+    "crop.planting.high_density_techniques": "[crop] म घाटा वाववा नी रीत कीं छे?",
+    "crop.water.management_practices": "[crop] वास्ते पाणी नी व्यवस्था नी रीत कसी छे?",
+    "crop.storage.pests_and_control": "[crop] ना गोदाम म साचवेल किडा अन रोग कीं रोकी सकाय?",
+    "crop.economics.cost_profit_average": "[crop] वाववा नो सरासरी खर्च अन नफा कतलो छे?",
+    "crop.export.standards": "[crop] ना निर्यात ना नियम कसा छे?",
+    "crop.processing.scope": "[crop] वास्ते फेक्टरी नो स्कोप कीं छे?",
+    "crop.climate.smart_practices": "[crop] वास्ते मौसम अनुकूल पद्धत कसी छे?",
+    
+    "fruit.schemes.available_for_plantations": "फळबाग लागवड करवा वास्ते कसी योजना छे?",
+    "fruit.bahar.management": "(फळ) म बहार नी व्यवस्था कीं करवानी?",
+    "fruit.bahar.season_best_for_flower_regulation": "[fruit crop] म फुल आवा वास्ते कसो मौसम हारो छे?",
+    "fruit.bahar.most_profitable_and_why": "[fruit crop] म फुल आवा वास्ते कसो मौसम नो नफो आपे छे अन कां?",
+    "fruit.fruit_load.per_tree_how_many": "[fruit crop] म एका झाड पर कतला फळ लेवा पाहीजे?",
+    "fruit.rest_period.operations_to_follow": "[fruit crop] म आराम ना वखत पर कसी कामु करवानी?",
+    
+    "flowers.requirements.sunlight_and_shade": "[Flower crop] न कतलो तडका अन कतली सावली जोवे?",
+    "flowers.greenhouse.benefits": "[Flower crop] वास्ते पॉलीहाऊस के ग्रीनहाऊस कीं फायदेदार छे?",
+    "flowers.export.best_cut_flower": "कटेला फुल उबजावा अन निर्यात वास्ते कसी फुल सबथी हारी छे?"
+  },
+  "maintenance": {
+    "title": "सुधारवा म छे",
+    "heading": "महाविस्तार AI अ‍ॅप",
+    "subheading": "सुधारवा म छे",
+    "message": "अमे अत्तार तमारो अनुभव सुधारवा वास्ते काम करी रेला छे. अमे झट पासा आवसु.",
+    "thankyou": "तमारी धीरज वास्ते आभारी छुं!",
+    "estimatedTime": "अंदाजे वखत: 2-3 कलाक",
+    "contact": "खास सवाल वास्ते, किरपा करन सहाय्य केंद्र हाते वात करो."
+  }
+}

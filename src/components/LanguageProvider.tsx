@@ -2,8 +2,9 @@ import { createContext, useContext, useState, ReactNode, useEffect } from "react
 import enTranslations from "../translations/en.json";
 import hiTranslations from "../translations/hi.json";
 import mrTranslations from "../translations/mr.json";
+import bhbTranslations from "../translations/bhb.json";
 
-type Language = "en" | "hi" | "mr";
+type Language = "en" | "hi" | "mr" | "bhb";
 
 type TranslationValue = string | string[] | Record<string, any>;
 
@@ -17,7 +18,8 @@ type LanguageContextType = {
 const translations = {
   en: enTranslations,
   hi: hiTranslations,
-  mr: mrTranslations
+  mr: mrTranslations,
+  bhb: bhbTranslations
 };
 
 const LanguageContext = createContext<LanguageContextType>({
