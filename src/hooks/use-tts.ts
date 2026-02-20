@@ -51,7 +51,7 @@ export function useTts() {
     }
   }, [play, updateAudioState]);
 
-  const playAudio = useCallback(async (text: string, messageId: string) => {
+  const playAudio = useCallback(async (text: string, messageId: string, responseLanguage?: string) => {
     pendingPlayRequests.current.set(messageId, true);
     
     try {
@@ -67,7 +67,7 @@ export function useTts() {
       const sessionId = apiService.getSessionId() || '';
       
       // Call the new getTranscript API
-      const response = await apiService.getTranscript(sessionId, text, language);
+      const response = await apiService.getTranscript(sessionId, text, responseLanguage || language);
       
       if (response.data.audio_data) {
         const audioBuffer = base64ToArrayBuffer(response.data.audio_data);
@@ -94,12 +94,12 @@ export function useTts() {
     }
   }, [playAudioFromBuffer, updateAudioState, language, t]);
 
-  const toggleAudio = useCallback((text: string, messageId: string) => {
+  const toggleAudio = useCallback((text: string, messageId: string, responseLanguage?: string) => {
     if (isPlaying && currentMessageId === messageId) {
       stopAudio();
     } else {
       stopAudio();
-      playAudio(text, messageId);
+      playAudio(text, messageId, responseLanguage);
     }
   }, [isPlaying, currentMessageId, stopAudio, playAudio]);
 
