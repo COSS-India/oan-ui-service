@@ -358,9 +358,10 @@ export function ChatInterface() {
   const sendMessageToApi = async (text: string, loadingMessageId: string) => {
     // Determine target and source language
     const targetLang = language;
-    let sourceLang = "en"; // Default source language
-    const detectedLanguage = detectIndianLanguage(text);
-    sourceLang = detectedLanguage.code;
+    // Use the selected language directly as source language
+    // (detectIndianLanguage disabled — misdetects bhb as hi since both share Devanagari)
+    // const detectedLanguage = detectIndianLanguage(text);
+    const sourceLang: string = language;
     console.log(sourceLang);
     const questionId = uuidv4();
     startTelemetry(sessionId, { preferred_username: getTelemetryUid(), email: user?.email || "default-email" });
