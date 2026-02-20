@@ -135,8 +135,7 @@ class ApiService {
 
       if (onStreamData) {
         // Handle streaming response
-        // Use custom endpoint and user_id for Bhili Language
-        const endpointPath = targetLang === 'bhb' ? '/api/chat-bhili/' : '/api/chat/';
+        const endpointPath = '/api/chat/';
         const apiParams: Record<string, string> = { ...params } as Record<string, string>;
 
         const response = await fetch(`${this.apiUrl}${endpointPath}?${new URLSearchParams(apiParams)}`, {
@@ -173,7 +172,7 @@ class ApiService {
         return { response: fullResponse, status: 'success' };
       } else {
         // Regular non-streaming request
-        const endpointPath = targetLang === 'bhb' ? '/api/chat-bhili/' : '/api/chat/';
+        const endpointPath = '/api/chat/';
         const apiParams: Record<string, string> = { ...params } as Record<string, string>;
 
         const config = {

@@ -37,6 +37,7 @@ interface ChatMessageProps {
   isFeedbackMessage?: boolean;
   isErrorMessage?: boolean;
   errorTranslationKey?: string;
+  responseLanguage?: string;
 }
 
 export function ChatMessage({
@@ -54,6 +55,7 @@ export function ChatMessage({
   isFeedbackMessage = false,
   isErrorMessage = false,
   errorTranslationKey,
+  responseLanguage,
 }: ChatMessageProps) {
   const [isLiked, setIsLiked] = useState(false);
   const [isDisliked, setIsDisliked] = useState(false);
@@ -68,7 +70,7 @@ export function ChatMessage({
   };
   
   const handlePlayAudio = () => {
-    toggleAudio(message, messageId);
+    toggleAudio(message, messageId, responseLanguage);
   };
 
   const handleCopy = () => {
