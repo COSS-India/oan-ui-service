@@ -169,6 +169,18 @@ class ApiService {
           onStreamData(chunk);
         }
 
+        // bhb returns a complete JSON object instead of streaming plain text.
+        if (targetLang === 'bhb') {
+          try {
+            const parsed = JSON.parse(fullResponse);
+            if (parsed && typeof parsed.response === 'string') {
+              return { response: parsed.response, status: 'success' };
+            }
+          } catch {
+            // Not valid JSON — fall through and return as-is
+          }
+        }
+
         return { response: fullResponse, status: 'success' };
       } else {
         // Regular non-streaming request
