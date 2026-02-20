@@ -270,7 +270,8 @@ class ApiService {
     return this.axiosInstance.post(`/api/tts/`, {
       session_id: sessionId,
       text: text,
-      target_lang: targetLang
+      target_lang: targetLang,
+      source_lang: targetLang
     }, config);
   }
 
