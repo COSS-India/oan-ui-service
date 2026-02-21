@@ -490,7 +490,8 @@ export function ChatInterface() {
           }, 10);
         },
         sessionId,
-        toast
+        toast,
+        language
       );
       
       // Set timeout to stop recording after maxRecordingDuration
@@ -696,7 +697,8 @@ export function ChatInterface() {
           setFeedbackText(prevValue => prevValue + (prevValue ? " " : "") + transcribedText);
         },
         sessionId,
-        toast
+        toast,
+        language
       );
       
       // Set timeout to stop recording after maxRecordingDuration

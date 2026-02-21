@@ -230,7 +230,8 @@ class ApiService {
   async transcribeAudio(
     audioBase64: string,
     serviceType: string = 'whisper',
-    sessionId: string
+    sessionId: string,
+    selectedLang?: string
   ): Promise<TranscriptionResponse> {
     try {
       this.refreshAuthToken();
@@ -238,11 +239,14 @@ class ApiService {
         return { text: "", lang_code: "", status: "error" };
       }
       
-      const payload = {
+      const payload: Record<string, string> = {
         audio_content: audioBase64,
         service_type: serviceType,
         session_id: sessionId
       };
+      if (selectedLang) {
+        payload.selected_lang = selectedLang;
+      }
 
       // Explicitly set headers for this request
       const config = {
