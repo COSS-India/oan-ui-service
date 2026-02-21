@@ -106,7 +106,7 @@ export function ChatMessage({
   const iconColor = theme === "dark" ? "white" : "currentColor";
 
   const markdownComponents: Components = {
-    p: ({ children }) => <p className="m-0 leading-normal">{children}</p>,
+    p: ({ children }) => <p className="mb-3 last:mb-0 leading-relaxed">{children}</p>,
     a: ({ href, children }) => (
       <a href={href} target="_blank" rel="noopener noreferrer" className="text-primary underline">
         {children}
