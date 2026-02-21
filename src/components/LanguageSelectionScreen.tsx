@@ -35,9 +35,9 @@ export function LanguageSelectionScreen({ onLanguageSelected }: { onLanguageSele
     },
     {
       code: "bhb",
-      nativeName: "भिल्ली",
+      nativeName: "भीली",
       englishName: "Bhili",
-      selectText: "भिल्ली चूनो"
+      selectText: "भीली चूनो"
     }
   ];
   
@@ -48,10 +48,10 @@ export function LanguageSelectionScreen({ onLanguageSelected }: { onLanguageSele
   
   const playAudio = (languageCode: "en" | "hi" | "mr" | "bhb") => {
     const audioFiles: Record<"en" | "hi" | "mr" | "bhb", string> = {
-      en: "/en.wav", 
+      en: "/en.wav",
       hi: "/hi.wav",
       mr: "/mr.wav",
-      bhb: "/mr.wav", // Fallback to Marathi audio if Bhili is missing
+      bhb: "/bhb.wav",
     };
 
     const filePath = audioFiles[languageCode];
