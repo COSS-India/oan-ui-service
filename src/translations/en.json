@@ -1,4 +1,7 @@
 {
+  "guestLimitTitle": "Free limit reached",
+  "guestLimitDescription": "You have used all 10 free questions. Please log in to continue chatting.",
+  "loginToContinue": "Login / Register",
   "welcome": "Hello! I am your farm assistant. How can I help you today?",
   "inputPlaceholder": "Ask your question...",
   "startRecording": "Start recording",

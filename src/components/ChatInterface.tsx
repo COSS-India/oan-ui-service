@@ -126,6 +126,9 @@ export function ChatInterface() {
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   const inputContainerRef = useRef<HTMLDivElement>(null);
 
+  // Guest limit state
+  const [guestLimitReached, setGuestLimitReached] = useState(false);
+
   const { stopAudio } = useTts();
 
   // Add this effect to update the input height CSS variable
@@ -178,6 +181,25 @@ export function ChatInterface() {
   const getTelemetryUid = useCallback(() => {
     return user?.is_guest_user ? "guest" : (user?.username || "default-username");
   }, [user]);
+
+  // Notify host app (iframe parent) when guest limit is reached
+  const notifyGuestLimitReached = useCallback((questionsAsked: number) => {
+    try {
+      window.parent.postMessage(
+        {
+          type: 'questions-limit-reached',
+          timestamp: new Date().toISOString(),
+          data: {
+            questionsAsked,
+            limit: environment.guestUserLimit,
+          },
+        },
+        '*'
+      );
+    } catch (e) {
+      console.error('postMessage failed:', e);
+    }
+  }, []);
 
   // Create a session ID
   const createSession = useCallback(() => {
@@ -303,7 +325,8 @@ export function ChatInterface() {
     if (user?.is_guest_user) {
       const guestCount = parseInt(getCookie('guest_question_count') || '0');
       if (guestCount >= environment.guestUserLimit) {
-        window.location.href = '/error?reason=guest_limit';
+        setGuestLimitReached(true);
+        notifyGuestLimitReached(guestCount);
         return;
       }
     }
@@ -416,6 +439,10 @@ export function ChatInterface() {
           const guestCount = parseInt(getCookie('guest_question_count') || '0');
           const newCount = guestCount + 1;
           setCookie('guest_question_count', newCount.toString(), 7);
+          if (newCount >= environment.guestUserLimit) {
+            setGuestLimitReached(true);
+            notifyGuestLimitReached(newCount);
+          }
         }
         
         startTelemetry(sessionId, { preferred_username: getTelemetryUid(), email: user?.email || "default-email" });
@@ -885,9 +912,10 @@ export function ChatInterface() {
     if (!user?.is_guest_user) return;
     const guestCount = parseInt(getCookie('guest_question_count') || '0');
     if (guestCount >= environment.guestUserLimit) {
-      window.location.href = '/error?reason=guest_limit';
+      setGuestLimitReached(true);
+      notifyGuestLimitReached(guestCount);
     }
-  }, [user]);
+  }, [user, notifyGuestLimitReached]);
 
   useEffect(() => {
     // Don't auto-scroll when keyboard is open on mobile
@@ -1113,6 +1141,33 @@ export function ChatInterface() {
 
   return (
     <div className="flex flex-col h-full relative p-[0px!important]">
+      {/* Guest limit reached overlay — covers full viewport so nothing bleeds through */}
+      {guestLimitReached && (
+        <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-background px-6 text-center">
+          <div className="rounded-2xl border border-border bg-card p-8 shadow-lg max-w-sm w-full">
+            <div className="text-4xl mb-4">🌾</div>
+            <h2 className="text-xl font-bold text-primary mb-2">
+              {(t("guestLimitTitle") as string) || "Free limit reached"}
+            </h2>
+            <p className="text-muted-foreground text-sm mb-6">
+              {(t("guestLimitDescription") as string) ||
+                "You have used all 10 free questions. Please log in to continue."}
+            </p>
+            <Button
+              className="w-full"
+              onClick={() => {
+                window.parent.postMessage(
+                  { type: 'login-requested', timestamp: new Date().toISOString() },
+                  '*'
+                );
+              }}
+            >
+              {(t("loginToContinue") as string) || "Login / Register"}
+            </Button>
+          </div>
+        </div>
+      )}
+
       {messages.length === 0 ? (
         <EmptyStateScreen setInputValue={setInputValue} />
       ) : (
