@@ -110,17 +110,28 @@ export async function predictDisease(
   cropId: string
 ): Promise<PredictionResult> {
   const formData = new FormData();
-  formData.append('crop_type', cropType);
+  formData.append('crop_type', cropType.trim());
   formData.append('sowing_date', sowingDate);
-  formData.append('image', image);
-  formData.append('crop_id', cropId);
+  // Explicit filename helps backends that infer file type from multipart filename.
+  formData.append('image', image, image.name || 'crop-image.jpg');
+  formData.append('crop_id', cropId.trim());
 
-  const response = await axios.post(
-    `${PREDICT_API_BASE}/api/v1/predict`,
-    formData,
-    { headers: { 'Content-Type': 'multipart/form-data' } }
-  );
-  return response.data;
+  try {
+    // Let the browser set multipart boundary automatically.
+    const response = await axios.post(`${PREDICT_API_BASE}/api/v1/predict`, formData);
+    return response.data;
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      const backendMessage =
+        typeof error.response?.data === 'string'
+          ? error.response.data
+          : JSON.stringify(error.response?.data ?? {});
+      throw new Error(
+        `Predict API failed (${error.response?.status ?? 'unknown'}): ${backendMessage}`
+      );
+    }
+    throw error;
+  }
 }
 
 /**
@@ -132,8 +143,7 @@ export async function getAdvisory(pdId: string): Promise<AdvisoryResult> {
 
   const response = await axios.post(
     `${PEST_API_BASE}/pestdetectionServices/crop_pd_advisory`,
-    formData,
-    { headers: { 'Content-Type': 'multipart/form-data' } }
+    formData
   );
   return response.data;
 }
@@ -161,8 +171,7 @@ export async function storeResponse(
 
   const res = await axios.post(
     `${PEST_API_BASE}/pestdetectionServices/store-response-against-crop-image`,
-    formData,
-    { headers: { 'Content-Type': 'multipart/form-data' } }
+    formData
   );
   return res.data;
 }
