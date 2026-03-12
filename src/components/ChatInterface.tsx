@@ -580,9 +580,19 @@ export function ChatInterface() {
     // Create a URL for the image to display in chat
     const imageObjectUrl = URL.createObjectURL(image);
 
-    // Resolve English crop name for the API (API requires English names)
-    const englishCrop = FALLBACK_CROPS.find((c) => String(c.crop_id) === cropId);
-    const cropTypeForApi = englishCrop ? englishCrop.crop_name : cropName;
+    // Resolve backend-valid crop values even when fallback/translated ids are stale.
+    const normalizeCropName = (name: string) =>
+      name.toLowerCase().replace(/\s+/g, " ").trim();
+    const selectedById = FALLBACK_CROPS.find((c) => String(c.crop_id) === cropId);
+    const selectedByName = FALLBACK_CROPS.find(
+      (c) =>
+        normalizeCropName(c.crop_name) === normalizeCropName(cropName) ||
+        normalizeCropName(c.crop_name).includes(normalizeCropName(cropName)) ||
+        normalizeCropName(cropName).includes(normalizeCropName(c.crop_name))
+    );
+    const resolvedCrop = selectedById || selectedByName;
+    const cropTypeForApi = resolvedCrop ? resolvedCrop.crop_name : cropName;
+    const cropIdForApi = resolvedCrop ? String(resolvedCrop.crop_id) : cropId;
 
     // Add user message with image, crop name and sowing date (right side)
     if (!inputPositioned) {
@@ -600,7 +610,7 @@ export function ChatInterface() {
 
     try {
       // Step 1: Predict (always use English crop name for API)
-      const prediction = await predictDisease(cropTypeForApi, sowingDate, image, cropId);
+      const prediction = await predictDisease(cropTypeForApi, sowingDate, image, cropIdForApi);
 
       if (!prediction.success || !prediction.data?.predictions?.length) {
         updateMessage(loadingMessageId, {
@@ -612,7 +622,7 @@ export function ChatInterface() {
         try {
           await storeResponse(
             image,
-            cropId,
+            cropIdForApi,
             sowingDate,
             false,
             JSON.stringify(prediction),
@@ -645,7 +655,7 @@ export function ChatInterface() {
       try {
         await storeResponse(
           image,
-          cropId,
+          cropIdForApi,
           sowingDate,
           true,
           JSON.stringify(prediction),
