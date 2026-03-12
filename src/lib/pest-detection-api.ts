@@ -33,6 +33,19 @@ export interface AdvisoryResult {
   [key: string]: unknown;
 }
 
+interface PestCropApiItem {
+  id: number;
+  name: string;
+  name_mr?: string;
+  name_hi?: string;
+}
+
+interface PestCropApiEnvelope {
+  status: number;
+  response: string;
+  data: PestCropApiItem[];
+}
+
 // ---- API Base URLs ----
 
 const PEST_API_BASE = 'https://stage-farmers-app-api.mahapocra.gov.in';
@@ -70,7 +83,21 @@ export async function getCrops(): Promise<CropItem[]> {
   const response = await axios.get(
     `${PEST_API_BASE}/pestdetectionServices/get-crops-for-pest-detection`
   );
-  return response.data;
+
+  // Supports both legacy array response and current envelope response.
+  const payload = response.data as PestCropApiEnvelope | PestCropApiItem[] | null | undefined;
+  const crops = Array.isArray(payload)
+    ? payload
+    : Array.isArray(payload?.data)
+      ? payload.data
+      : [];
+
+  return crops.map((crop) => ({
+    crop_id: crop.id,
+    crop_name: crop.name,
+    crop_name_mr: crop.name_mr,
+    crop_name_hi: crop.name_hi,
+  }));
 }
 
 /**
