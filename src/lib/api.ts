@@ -42,7 +42,7 @@ interface AuthResponse {
 const JWT_STORAGE_KEY = "auth_jwt";
 
 class ApiService {
-  private apiUrl: string = "";
+  private apiUrl: string = "http://localhost:8000";
   private locationData: LocationData | null = null;
   private currentSessionId: string | null = null;
   private axiosInstance: AxiosInstance;
@@ -513,24 +513,29 @@ class ApiService {
   }
 
   async fetchAuthToken(metadata: string): Promise<string> {
+    // ADDED: Get reCAPTCHA token from Google
+    const siteKey = import.meta.env.VITE_RECAPTCHA_SITE_KEY;
+    if (!(window as any).grecaptcha) {
+      throw new Error("grecaptcha not loaded");
+    }
+    const recaptchaToken = await (window as any).grecaptcha.execute(siteKey, { action: "token" });
     try {
-      // Don't use authentication headers for this call as we're getting the token
       const response = await axios.post<AuthResponse>(
         `${this.apiUrl}/api/token`,
         {
+          recaptchaToken, // ADDED
           metadata,
         },
+        // { recaptchaToken: "invalid", metadata: "test" },
         {
           headers: {
             "Content-Type": "application/json",
           },
         }
       );
-
       if (response.data && response.data.token) {
         return response.data.token;
       }
-
       throw new Error("No token received from auth endpoint");
     } catch (error) {
       console.error("Error fetching auth token:", error);
