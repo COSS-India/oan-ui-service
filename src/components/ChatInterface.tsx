@@ -614,6 +614,7 @@ export function ChatInterface() {
     // Resolve English crop name for the API (API requires English names)
     const englishCrop = FALLBACK_CROPS.find((c) => String(c.crop_id) === cropId);
     const cropTypeForApi = cropNameEnglish || (englishCrop ? englishCrop.crop_name : cropName);
+    const cropIdForApi = cropId.trim();
 
     // Add user message with image, crop name and sowing date (right side)
     if (!inputPositioned) {
