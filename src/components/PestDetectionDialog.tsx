@@ -15,7 +15,13 @@ const ACCEPTED_TYPES = ["image/jpeg", "image/png", "image/jpg"];
 interface PestDetectionDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSubmit: (cropId: string, cropName: string, sowingDate: string, image: File) => void;
+  onSubmit: (
+    cropId: string,
+    cropName: string,
+    sowingDate: string,
+    image: File,
+    cropNameEnglish?: string
+  ) => void;
   isSubmitting?: boolean;
 }
 
@@ -25,7 +31,7 @@ export function PestDetectionDialog({
   onSubmit,
   isSubmitting = false,
 }: PestDetectionDialogProps) {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const [crops, setCrops] = useState<CropItem[]>([]);
   const [loadingCrops, setLoadingCrops] = useState(false);
   const [selectedCropId, setSelectedCropId] = useState<string>("");
@@ -38,28 +44,32 @@ export function PestDetectionDialog({
 
   // Fetch crops on dialog open
   useEffect(() => {
-    if (open && crops.length === 0) {
-      setLoadingCrops(true);
-      getCrops()
-        .then((data) => setCrops(data))
-        .catch((err) => {
-          console.error("Failed to fetch crops, using fallback list:", err);
-          // Load fallback crops from translation JSON
-          const translationCrops = t("pestDetection.crops") as unknown;
-          if (Array.isArray(translationCrops) && translationCrops.length > 0) {
-            setCrops(
-              (translationCrops as { id: number; name: string }[]).map((c) => ({
-                crop_id: c.id,
-                crop_name: c.name,
-              }))
-            );
-          } else {
-            setCrops(FALLBACK_CROPS);
-          }
-        })
-        .finally(() => setLoadingCrops(false));
-    }
-  }, [open, crops.length]);
+    if (!open) return;
+
+    let isCancelled = false;
+    setLoadingCrops(true);
+
+    getCrops()
+      .then((data) => {
+        if (isCancelled) return;
+        // Always prefer latest response-driven crop list.
+        setCrops(data.length > 0 ? data : FALLBACK_CROPS);
+      })
+      .catch((err) => {
+        if (isCancelled) return;
+        console.error("Failed to fetch crops, using fallback list:", err);
+        setCrops(FALLBACK_CROPS);
+      })
+      .finally(() => {
+        if (!isCancelled) {
+          setLoadingCrops(false);
+        }
+      });
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [open]);
 
   // Reset form when dialog closes
   useEffect(() => {
@@ -110,11 +120,17 @@ export function PestDetectionDialog({
     setImagePreview(null);
   };
 
+  const getLocalizedCropName = (crop: CropItem): string => {
+    if (language === "mr" && crop.crop_name_mr) return crop.crop_name_mr;
+    if (language === "hi" && crop.crop_name_hi) return crop.crop_name_hi;
+    return crop.crop_name;
+  };
+
   const handleSubmit = () => {
     if (!selectedCropId || !sowingDate || !selectedImage) return;
     const crop = crops.find((c) => String(c.crop_id) === selectedCropId);
     if (!crop) return;
-    onSubmit(selectedCropId, crop.crop_name, sowingDate, selectedImage);
+    onSubmit(selectedCropId, getLocalizedCropName(crop), sowingDate, selectedImage, crop.crop_name);
   };
 
   const isFormValid = selectedCropId && sowingDate && selectedImage;
@@ -144,7 +160,7 @@ export function PestDetectionDialog({
               <SelectContent className="max-h-60">
                 {crops.map((crop) => (
                   <SelectItem key={crop.crop_id} value={String(crop.crop_id)}>
-                    {crop.crop_name}
+                    {getLocalizedCropName(crop)}
                   </SelectItem>
                 ))}
               </SelectContent>

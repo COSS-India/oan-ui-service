@@ -25,7 +25,13 @@ import { useTts } from "@/hooks/use-tts";
 import { FeedbackForm } from "@/components/FeedbackForm";
 import { useAuth } from "@/contexts/AuthContext";
 import { PestDetectionDialog } from "@/components/PestDetectionDialog";
-import { predictDisease, getAdvisory, storeResponse, FALLBACK_CROPS } from "@/lib/pest-detection-api";
+import {
+  predictDisease,
+  getAdvisory,
+  storeResponse,
+  FALLBACK_CROPS,
+  type AdvisoryResult,
+} from "@/lib/pest-detection-api";
 
 interface Message {
   id: string;
@@ -567,11 +573,36 @@ export function ChatInterface() {
   };
 
   // Pest detection submit handler
+  const getLocalizedFieldValue = (
+    values: { en?: string; mr?: string; hi?: string },
+    fallback = ""
+  ): string => {
+    const preferredValues = language === "mr"
+      ? [values.mr, values.en, values.hi]
+      : language === "hi"
+        ? [values.hi, values.en, values.mr]
+        : [values.en, values.mr, values.hi];
+
+    const selected = preferredValues.find(
+      (value) => typeof value === "string" && value.trim().length > 0
+    );
+
+    return selected || fallback;
+  };
+
+  const formatAdvisoryText = (value: string): string => {
+    const normalized = value.replace(/\r\n/g, "\n").trim();
+    if (!normalized) return "";
+    // Keep numbered advisory points readable in markdown.
+    return normalized.replace(/\n(?=\d+\.)/g, "\n\n");
+  };
+
   const handlePestDetectionSubmit = async (
     cropId: string,
     cropName: string,
     sowingDate: string,
-    image: File
+    image: File,
+    cropNameEnglish?: string
   ) => {
     setIsPestDetectionSubmitting(true);
     setShowPestDetectionDialog(false);
@@ -580,26 +611,16 @@ export function ChatInterface() {
     // Create a URL for the image to display in chat
     const imageObjectUrl = URL.createObjectURL(image);
 
-    // Resolve backend-valid crop values even when fallback/translated ids are stale.
-    const normalizeCropName = (name: string) =>
-      name.toLowerCase().replace(/\s+/g, " ").trim();
-    const selectedById = FALLBACK_CROPS.find((c) => String(c.crop_id) === cropId);
-    const selectedByName = FALLBACK_CROPS.find(
-      (c) =>
-        normalizeCropName(c.crop_name) === normalizeCropName(cropName) ||
-        normalizeCropName(c.crop_name).includes(normalizeCropName(cropName)) ||
-        normalizeCropName(cropName).includes(normalizeCropName(c.crop_name))
-    );
-    const resolvedCrop = selectedById || selectedByName;
-    const cropTypeForApi = resolvedCrop ? resolvedCrop.crop_name : cropName;
-    const cropIdForApi = resolvedCrop ? String(resolvedCrop.crop_id) : cropId;
+    // Resolve English crop name for the API (API requires English names)
+    const englishCrop = FALLBACK_CROPS.find((c) => String(c.crop_id) === cropId);
+    const cropTypeForApi = cropNameEnglish || (englishCrop ? englishCrop.crop_name : cropName);
 
     // Add user message with image, crop name and sowing date (right side)
     if (!inputPositioned) {
       setInputPositioned(true);
     }
     addMessage(
-      `🌿 **${cropName}**\n📅 ${sowingDate}`,
+      `**${cropName}**\n${sowingDate}`,
       true,
       { imageUrl: imageObjectUrl }
     );
@@ -613,8 +634,13 @@ export function ChatInterface() {
       const prediction = await predictDisease(cropTypeForApi, sowingDate, image, cropIdForApi);
 
       if (!prediction.success || !prediction.data?.predictions?.length) {
+        const resultLabel = (t("pestDetection.resultLabel") as string) || "Pest/Disease";
+        const unknownDisease = (t("pestDetection.unknownDisease") as string) || "Unknown Disease";
+        const unknownDiseaseMessage = (t("pestDetection.unknownDiseaseMessage", { crop: cropName }) as string)
+          || `The system could not identify a specific disease for ${cropName}. Please try again with a clearer image or consult a local agriculture officer.`;
+
         updateMessage(loadingMessageId, {
-          text: `### 🌿 Pest/Disease: Unknown Disease\n\nThe system could not identify a specific disease for **${cropName}**.\nPlease try again with a clearer image or consult a local agriculture officer.`,
+          text: `### ${resultLabel}: ${unknownDisease}\n\n${unknownDiseaseMessage}`,
           isLoading: false,
           isStreaming: false,
         });
@@ -639,17 +665,49 @@ export function ChatInterface() {
       const diseaseId = topPrediction.disease_id;
       const diseaseType = topPrediction.disease_type;
       const confidence = (topPrediction.confidence_score * 100).toFixed(1);
+      const noInformation = (t("pestDetection.noInformation") as string) || "No information available.";
 
       // Step 2: Get advisory
-      let advisory: { preventive_measures: string; curative_measures: string } = {
-        preventive_measures: "No information available.",
-        curative_measures: "No information available.",
+      let advisory: AdvisoryResult = {
+        preventive_measures: noInformation,
+        curative_measures: noInformation,
       };
       try {
         advisory = await getAdvisory(diseaseId);
       } catch (advErr) {
         console.error("Failed to get advisory:", advErr);
       }
+
+      const diseaseTypeText = getLocalizedFieldValue(
+        {
+          en: advisory.disease_pest || diseaseType,
+          mr: advisory.disease_pest_mr,
+          hi: advisory.disease_pest_hi,
+        },
+        diseaseType
+      );
+
+      const preventiveMeasures = formatAdvisoryText(
+        getLocalizedFieldValue(
+          {
+            en: advisory.preventive_measures,
+            mr: advisory.preventive_measures_mr,
+            hi: advisory.preventive_measures_hi,
+          },
+          noInformation
+        )
+      ) || noInformation;
+
+      const curativeMeasures = formatAdvisoryText(
+        getLocalizedFieldValue(
+          {
+            en: advisory.curative_measures,
+            mr: advisory.curative_measures_mr,
+            hi: advisory.curative_measures_hi,
+          },
+          noInformation
+        )
+      ) || noInformation;
 
       // Step 3: Store response
       try {
@@ -668,17 +726,17 @@ export function ChatInterface() {
 
       // Format the result as markdown
       const resultMarkdown = [
-        `### 🌿 Pest/Disease: **${diseaseType}**`,
-        `**Confidence:** ${confidence}%`,
-        `**Crop:** ${cropName} | **Sowing Date:** ${sowingDate}`,
+        `### ${(t("pestDetection.resultLabel") as string) || "Pest/Disease"}: **${diseaseTypeText}**`,
+        `**${(t("pestDetection.confidenceLabel") as string) || "Confidence"}:** ${confidence}%`,
+        `**${(t("pestDetection.cropLabel") as string) || "Crop"}:** ${cropName} | **${(t("pestDetection.sowingDateLabel") as string) || "Sowing Date"}:** ${sowingDate}`,
         ``,
         `---`,
         ``,
-        `#### 🛡️ Preventive Measures`,
-        advisory.preventive_measures,
+        `#### ${(t("pestDetection.preventiveMeasuresLabel") as string) || "Preventive Measures"}`,
+        preventiveMeasures,
         ``,
-        `#### 💊 Curative Measures`,
-        advisory.curative_measures,
+        `#### ${(t("pestDetection.curativeMeasuresLabel") as string) || "Curative Measures"}`,
+        curativeMeasures,
       ].join("\n");
 
       // Update the loading message with the final result

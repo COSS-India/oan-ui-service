@@ -239,7 +239,6 @@
     "market.price.modal": "What is the modal price of [crop] in [district]?",
     "market.price.factors_affecting": "What factors affect the market price of [crop]?",
     "market.price.daily_updates": "How can I get daily mandi price updates for [crop]?",
-
     "livestock.milk.increase_production": "How can I increase milk production in [animal]?",
     "livestock.health.mastitis_treatment": "What is the treatment for Mastitis in [animal]?",
     "livestock.vaccines.schedule_year": "What vaccines are required for [animal] throughout the year?",
@@ -255,13 +254,11 @@
     "livestock.breeding.artificial_insemination": "What is artificial insemination in [animal]?",
     "livestock.biosecurity.measures": "What biosecurity measures are needed in [animal] farms?",
     "livestock.health.health_calendar_importance": "Why is a health calendar important for [animal]?",
-
     "weather.forecast.5day": "What is the 5-day weather forecast for my area?",
     "weather.rain.tomorrow": "Will it rain tomorrow in my area?",
     "weather.alert.hailstorm": "Is there a hailstorm warning this week?",
     "weather.today.metrics": "What is today’s temperature, humidity, and wind speed?",
     "weather.irrigation.recommendation": "Should I irrigate my [crop] today based on forecast?",
-
     "fruit.fertilizer.recommendations": "What are the best fertilizer recommendations for [fruit crop]?",
     "fruit.pest.fruit_fly_control": "How to control fruit fly infestation in [fruit crop]?",
     "fruit.irrigation.schedule": "What is the ideal irrigation schedule for [fruit crop]?",
@@ -287,7 +284,6 @@
     "fruit.yield.average_per_acre": "What is the average yield of [fruit crop] per acre?",
     "fruit.export.quality_obtainment": "How to get export quality produce in [fruit crop]?",
     "fruit.organic.practices": "What are organic practices for [fruit crop] cultivation?",
-
     "schemes.pm_kisan.about": "What is the PM-KISAN scheme?",
     "schemes.pmfby.apply": "How can I apply for PM Fasal Bima Yojana?",
     "schemes.agristack.eligibility_check": "How to check which schemes I am eligible for using AgriStack?",
@@ -298,7 +294,6 @@
     "schemes.atma.benefits": "How can I benefit from ATMA program in my district?",
     "schemes.nbm.about": "Tell me about the National Bamboo Mission.",
     "schemes.organic.certification_apply": "How to apply for organic farming certification schemes?",
-
     "crop.fertilizer.latest_recommendations": "What are the latest fertilizer recommendations for [crop]?",
     "crop.varieties.high_yielding": "What are the high-yielding varieties of [crop]?",
     "crop.sowing.best_practices": "What are the best sowing practices for [crop]?",
@@ -339,14 +334,12 @@
     "crop.export.standards": "What are export standards for [crop]?",
     "crop.processing.scope": "What is the scope of processing industries for [crop]?",
     "crop.climate.smart_practices": "What are climate-smart practices for [crop]?",
-
     "fruit.schemes.available_for_plantations": "What schemes are available for fruit plantations?",
     "fruit.bahar.management": "How to manage Bahar treatment in [fruit crop] ?",
     "fruit.bahar.season_best_for_flower_regulation": "Which season is good for flower regulation (bahar) treatment in [fruit crop]?",
     "fruit.bahar.most_profitable_and_why": "Which flower regulation period or bahar in [fruit crop] is most profitable and why?",
     "fruit.fruit_load.per_tree_how_many": "How many fruits per tree should be taken in [fruit crop] ?",
     "fruit.rest_period.operations_to_follow": "What operations have to be followed during rest period in [fruit crop] ?",
-
     "flowers.requirements.sunlight_and_shade": "How much sunlight and shade do [Flower crop] need?",
     "flowers.greenhouse.benefits": "How can polyhouse or greenhouse benefit  [Flower crop] flower cultivation?",
     "flowers.export.best_cut_flower": "Which flowers are best for cut-flower production and export?"
@@ -373,25 +366,14 @@
     "errorGeneric": "Could not analyze the image. Please try again.",
     "fileTooLarge": "Image exceeds 10 MB limit.",
     "invalidFormat": "Please select a JPEG, PNG, or JPG image.",
-    "crops": [
-      { "id": 1, "name": "Maize" },
-      { "id": 2, "name": "Paddy" },
-      { "id": 3, "name": "Wheat" },
-      { "id": 4, "name": "Sorghum" },
-      { "id": 5, "name": "Gram" },
-      { "id": 6, "name": "Pigeon pea (Tur)" },
-      { "id": 7, "name": "Groundnut" },
-      { "id": 8, "name": "Soybean" },
-      { "id": 9, "name": "Mustard" },
-      { "id": 10, "name": "Sugarcane" },
-      { "id": 11, "name": "Cotton" },
-      { "id": 12, "name": "Potato" },
-      { "id": 13, "name": "Onion" },
-      { "id": 14, "name": "Tomato" },
-      { "id": 15, "name": "Brinjal" },
-      { "id": 16, "name": "Grapes" },
-      { "id": 17, "name": "Apple" },
-      { "id": 18, "name": "Mango" }
-    ]
+    "resultLabel": "Pest/Disease",
+    "confidenceLabel": "Confidence",
+    "cropLabel": "Crop",
+    "sowingDateLabel": "Sowing Date",
+    "preventiveMeasuresLabel": "Preventive Measures",
+    "curativeMeasuresLabel": "Curative Measures",
+    "unknownDisease": "Unknown Disease",
+    "unknownDiseaseMessage": "The system could not identify a specific disease for [crop]. Please try again with a clearer image or consult a local agriculture officer.",
+    "noInformation": "No information available."
   }
 }
