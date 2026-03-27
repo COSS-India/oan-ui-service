@@ -39,18 +39,6 @@ export function LanguageSelector() {
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
         <DropdownMenuItem 
-          className={getActiveClass("en")}
-          onClick={() => setLanguage("en")}
-        >
-          English
-        </DropdownMenuItem>
-        {/* <DropdownMenuItem 
-          className={getActiveClass("hi")}
-          onClick={() => setLanguage("hi")}
-        >
-          हिंदी
-        </DropdownMenuItem> */}
-        <DropdownMenuItem 
           className={getActiveClass("mr")}
           onClick={() => setLanguage("mr")}
         >
@@ -61,6 +49,18 @@ export function LanguageSelector() {
           onClick={() => setLanguage("bhb")}
         >
           भीली
+        </DropdownMenuItem>
+        <DropdownMenuItem 
+          className={getActiveClass("en")}
+          onClick={() => setLanguage("en")}
+        >
+          English
+        </DropdownMenuItem>
+        <DropdownMenuItem 
+          className={getActiveClass("hi")}
+          onClick={() => setLanguage("hi")}
+        >
+          हिंदी
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

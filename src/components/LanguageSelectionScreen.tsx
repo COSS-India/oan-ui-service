@@ -16,18 +16,6 @@ export function LanguageSelectionScreen({ onLanguageSelected }: { onLanguageSele
   
   const languageOptions: LanguageOption[] = [
     {
-      code: "en",
-      nativeName: "English",
-      englishName: "English",
-      selectText: "Select English"
-    },
-    // {
-    //   code: "hi",
-    //   nativeName: "हिंदी",
-    //   englishName: "Hindi",
-    //   selectText: "हिंदी चुनें"
-    // },
-    {
       code: "mr",
       nativeName: "मराठी",
       englishName: "Marathi",
@@ -38,6 +26,18 @@ export function LanguageSelectionScreen({ onLanguageSelected }: { onLanguageSele
       nativeName: "भीली",
       englishName: "Bhili",
       selectText: "भीली चूनो"
+    },
+    {
+      code: "en",
+      nativeName: "English",
+      englishName: "English",
+      selectText: "Select English"
+    },
+    {
+      code: "hi",
+      nativeName: "हिंदी",
+      englishName: "Hindi",
+      selectText: "हिंदी चुनें"
     }
   ];
   
