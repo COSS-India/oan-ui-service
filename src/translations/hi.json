@@ -41,7 +41,7 @@
   "dislikeMessage": "संदेश नहीं पसंद करें",
   "settings": "सेटिंग्ज",
   "theme": "थीम",
-  "toast": { 
+  "toast": {
     "locationPermissionDenied": {
       "title": "स्थान अनुमति अस्वीकृत",
       "description": "स्थान पहुंच अस्वीकृत। मौसम संबंधित सुविधाएं उपलब्ध नहीं होंगी।"
@@ -112,25 +112,14 @@
     "errorGeneric": "छवि का विश्लेषण नहीं हो सका। कृपया पुनः प्रयास करें।",
     "fileTooLarge": "छवि 10 MB सीमा से अधिक है।",
     "invalidFormat": "कृपया JPEG, PNG या JPG छवि चुनें।",
-    "crops": [
-      { "id": 1, "name": "मक्का" },
-      { "id": 2, "name": "धान" },
-      { "id": 3, "name": "गेहूं" },
-      { "id": 4, "name": "ज्वार" },
-      { "id": 5, "name": "चना" },
-      { "id": 6, "name": "अरहर (तूर)" },
-      { "id": 7, "name": "मूंगफली" },
-      { "id": 8, "name": "सोयाबीन" },
-      { "id": 9, "name": "सरसों" },
-      { "id": 10, "name": "गन्ना" },
-      { "id": 11, "name": "कपास" },
-      { "id": 12, "name": "आलू" },
-      { "id": 13, "name": "प्याज" },
-      { "id": 14, "name": "टमाटर" },
-      { "id": 15, "name": "बैंगन" },
-      { "id": 16, "name": "अंगूर" },
-      { "id": 17, "name": "सेब" },
-      { "id": 18, "name": "आम" }
-    ]
+    "resultLabel": "कीट/रोग",
+    "confidenceLabel": "विश्वास स्तर",
+    "cropLabel": "फसल",
+    "sowingDateLabel": "बोने की तारीख",
+    "preventiveMeasuresLabel": "रोकथाम उपाय",
+    "curativeMeasuresLabel": "उपचारात्मक उपाय",
+    "unknownDisease": "अज्ञात रोग",
+    "unknownDiseaseMessage": "[crop] के लिए किसी विशिष्ट रोग की पहचान नहीं हो सकी। कृपया अधिक स्पष्ट छवि के साथ पुनः प्रयास करें या स्थानीय कृषि अधिकारी से संपर्क करें।",
+    "noInformation": "जानकारी उपलब्ध नहीं है।"
   }
 }
