@@ -4,7 +4,7 @@ import { Volume2 } from "lucide-react";
 import { useState } from "react";
 
 interface LanguageOption {
-  code: "en" | "hi" | "mr";
+  code: "en" | "hi" | "mr" | "bhb";
   nativeName: string;
   englishName: string;
   selectText: string;
@@ -32,19 +32,26 @@ export function LanguageSelectionScreen({ onLanguageSelected }: { onLanguageSele
       nativeName: "मराठी",
       englishName: "Marathi",
       selectText: "मराठी निवडा"
+    },
+    {
+      code: "bhb",
+      nativeName: "भीली",
+      englishName: "Bhili",
+      selectText: "भीली चूनो"
     }
   ];
   
-  const handleLanguageSelect = (languageCode: "en" | "hi" | "mr") => {
+  const handleLanguageSelect = (languageCode: "en" | "hi" | "mr" | "bhb") => {
     setLanguage(languageCode);
     onLanguageSelected();
   };
   
-  const playAudio = (languageCode: "en" | "hi" | "mr") => {
-    const audioFiles: Record<"en" | "hi" | "mr", string> = {
-      en: "/en.wav", 
+  const playAudio = (languageCode: "en" | "hi" | "mr" | "bhb") => {
+    const audioFiles: Record<"en" | "hi" | "mr" | "bhb", string> = {
+      en: "/en.wav",
       hi: "/hi.wav",
       mr: "/mr.wav",
+      bhb: "/bhb.wav",
     };
 
     const filePath = audioFiles[languageCode];

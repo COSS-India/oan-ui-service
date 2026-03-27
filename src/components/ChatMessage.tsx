@@ -37,6 +37,7 @@ interface ChatMessageProps {
   isFeedbackMessage?: boolean;
   isErrorMessage?: boolean;
   errorTranslationKey?: string;
+  responseLanguage?: string;
   imageUrl?: string;
 }
 
@@ -55,6 +56,7 @@ export function ChatMessage({
   isFeedbackMessage = false,
   isErrorMessage = false,
   errorTranslationKey,
+  responseLanguage,
   imageUrl,
 }: ChatMessageProps) {
   const [isLiked, setIsLiked] = useState(false);
@@ -70,7 +72,7 @@ export function ChatMessage({
   };
   
   const handlePlayAudio = () => {
-    toggleAudio(message, messageId);
+    toggleAudio(message, messageId, responseLanguage);
   };
 
   const handleCopy = () => {
@@ -106,7 +108,7 @@ export function ChatMessage({
   const iconColor = theme === "dark" ? "white" : "currentColor";
 
   const markdownComponents: Components = {
-    p: ({ children }) => <p className="m-0 leading-normal">{children}</p>,
+    p: ({ children }) => <p className="mb-3 last:mb-0 leading-relaxed">{children}</p>,
     a: ({ href, children }) => (
       <a href={href} target="_blank" rel="noopener noreferrer" className="text-primary underline">
         {children}

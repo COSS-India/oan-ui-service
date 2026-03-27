@@ -135,7 +135,10 @@ class ApiService {
 
       if (onStreamData) {
         // Handle streaming response
-        const response = await fetch(`${this.apiUrl}/api/chat/?${new URLSearchParams(params)}`, {
+        const endpointPath = '/api/chat/';
+        const apiParams: Record<string, string> = { ...params } as Record<string, string>;
+
+        const response = await fetch(`${this.apiUrl}${endpointPath}?${new URLSearchParams(apiParams)}`, {
           method: 'GET',
           headers: headers          
         });
@@ -166,14 +169,29 @@ class ApiService {
           onStreamData(chunk);
         }
 
+        // bhb returns a complete JSON object instead of streaming plain text.
+        if (targetLang === 'bhb') {
+          try {
+            const parsed = JSON.parse(fullResponse);
+            if (parsed && typeof parsed.response === 'string') {
+              return { response: parsed.response, status: 'success' };
+            }
+          } catch {
+            // Not valid JSON — fall through and return as-is
+          }
+        }
+
         return { response: fullResponse, status: 'success' };
       } else {
         // Regular non-streaming request
+        const endpointPath = '/api/chat/';
+        const apiParams: Record<string, string> = { ...params } as Record<string, string>;
+
         const config = {
-          params,
+          params: apiParams,
           headers: this.getAuthHeaders()
         };
-        const response = await this.axiosInstance.get('/api/chat/', config);
+        const response = await this.axiosInstance.get(endpointPath, config);
         return response.data;
       }
     } catch (error) {
@@ -212,7 +230,8 @@ class ApiService {
   async transcribeAudio(
     audioBase64: string,
     serviceType: string = 'whisper',
-    sessionId: string
+    sessionId: string,
+    selectedLang?: string
   ): Promise<TranscriptionResponse> {
     try {
       this.refreshAuthToken();
@@ -220,11 +239,14 @@ class ApiService {
         return { text: "", lang_code: "", status: "error" };
       }
       
-      const payload = {
+      const payload: Record<string, string> = {
         audio_content: audioBase64,
         service_type: serviceType,
         session_id: sessionId
       };
+      if (selectedLang) {
+        payload.selected_lang = selectedLang;
+      }
 
       // Explicitly set headers for this request
       const config = {
@@ -252,7 +274,8 @@ class ApiService {
     return this.axiosInstance.post(`/api/tts/`, {
       session_id: sessionId,
       text: text,
-      target_lang: targetLang
+      target_lang: targetLang,
+      source_lang: targetLang
     }, config);
   }
 

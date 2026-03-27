@@ -68,11 +68,12 @@ export function EmptyStateScreen({ setInputValue }: EmptyStateScreenProps) {
   const limitations = t("limitations");
 
   // Section titles
-  const titles = {
+  const titles = ({
     en: { ask: "Ask", capabilities: "Capabilities", remember: "Remember" },
     hi: { ask: "पूछें", capabilities: "क्षमताएँ", remember: "याद रखें" },
-    mr: { ask: "विचारा", capabilities: "क्षमता", remember: "लक्षात ठेवा" }
-  }[language];
+    mr: { ask: "विचारा", capabilities: "क्षमता", remember: "लक्षात ठेवा" },
+    bhb: { ask: "पुछो", capabilities: "क्षमता", remember: "याद राखो" }
+  } as Record<string, { ask: string; capabilities: string; remember: string }>)[language] ?? { ask: "Ask", capabilities: "Capabilities", remember: "Remember" };
   
   const handleQuestionClick = (question: string) => {
     setInputValue(question);

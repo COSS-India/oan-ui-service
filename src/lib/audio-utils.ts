@@ -35,7 +35,7 @@ export const setupAudioVisualization = (
   const updateAudioLevel = () => {
     if (!analyserRef.current || !dataRef.current) return;
     
-    analyserRef.current.getByteFrequencyData(dataRef.current);
+    analyserRef.current.getByteFrequencyData(dataRef.current as Uint8Array<ArrayBuffer>);
     
     let sum = 0;
     for (let i = 0; i < dataRef.current.length; i++) {
@@ -59,7 +59,8 @@ export const setupAudioRecording = (
   mediaRecorderRef: React.MutableRefObject<MediaRecorder | null>,
   handleAudioCallback: (text: string) => void,
   sessionId: string | null,
-  toastFn?: (props: { title: string; description: string; variant: "default" | "destructive" | "yellow" }) => void
+  toastFn?: (props: { title: string; description: string; variant: "default" | "destructive" | "yellow" }) => void,
+  selectedLang?: string
 ) => {
   // Create MediaRecorder
   const mediaRecorder = new MediaRecorder(stream);
@@ -90,11 +91,11 @@ export const setupAudioRecording = (
       
       // Create optimal WAV file for transcription
       const optimizedBlob = await createOptimizedWav(audioBuffer);
-      handleAudioSubmission(optimizedBlob, handleAudioCallback, sessionId, toastFn);
+      handleAudioSubmission(optimizedBlob, handleAudioCallback, sessionId, toastFn, selectedLang);
     } catch (error) {
       console.error("Error processing audio, using original:", error);
       // Fall back to original audio if processing fails
-      handleAudioSubmission(audioBlob, handleAudioCallback, sessionId, toastFn);
+      handleAudioSubmission(audioBlob, handleAudioCallback, sessionId, toastFn, selectedLang);
     }
   });
   
@@ -109,7 +110,8 @@ const handleAudioSubmission = async (
   audioBlob: Blob, 
   handleAudioCallback: (text: string) => void,
   sessionId: string | null,
-  toastFn?: (props: { title: string; description: string; variant: "default" | "destructive" | "yellow" }) => void
+  toastFn?: (props: { title: string; description: string; variant: "default" | "destructive" | "yellow" }) => void,
+  selectedLang?: string
 ) => {
   try {
     const base64Audio = await apiService.blobToBase64(audioBlob);
@@ -117,7 +119,8 @@ const handleAudioSubmission = async (
     const transcription = await apiService.transcribeAudio(
       base64Audio,
       'bhashini', // real Bhashini service ID string
-      sessionId
+      sessionId,
+      selectedLang
     ) as TranscriptionResponse;
     
     if (transcription && transcription.text) {
