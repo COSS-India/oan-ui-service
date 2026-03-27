@@ -28,13 +28,18 @@ export interface PredictionResult {
 }
 
 export interface AdvisoryResult {
+  crop_id?: number;
+  crop_name?: string;
   disease_pest?: string;
   disease_pest_mr?: string;
   disease_pest_hi?: string;
+  disease_pest_en?: string;
   preventive_measures: string;
+  preventive_measures_en?: string;
   preventive_measures_mr?: string;
   preventive_measures_hi?: string;
   curative_measures: string;
+  curative_measures_en?: string;
   curative_measures_mr?: string;
   curative_measures_hi?: string;
   note?: string;
@@ -164,7 +169,7 @@ export async function predictDisease(
 /**
  * Step 3: Get advisory (preventive & curative measures) for a disease
  */
-export async function getAdvisory(pdId: string): Promise<AdvisoryResult> {
+export async function getAdvisory(pdId: string, cropId?: string): Promise<AdvisoryResult> {
   const formData = new FormData();
   formData.append('pd_id', pdId);
 
@@ -193,7 +198,19 @@ export async function getAdvisory(pdId: string): Promise<AdvisoryResult> {
   }
 
   const advisoryList = asArray<Partial<AdvisoryResult>>(payload);
-  const firstAdvisory = advisoryList[0];
+
+  let selectedAdvisory: Partial<AdvisoryResult> | undefined;
+  if (cropId) {
+    const cropIdNum = Number(cropId);
+    selectedAdvisory = advisoryList.find((item) => {
+      if (item && typeof item.crop_id === "number" && Number.isFinite(cropIdNum)) {
+        return item.crop_id === cropIdNum;
+      }
+      return String(item?.crop_id ?? "") === String(cropId);
+    });
+  }
+
+  const firstAdvisory = selectedAdvisory || advisoryList[0];
 
   if (!firstAdvisory) return fallback;
 

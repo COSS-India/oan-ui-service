@@ -578,10 +578,10 @@ export function ChatInterface() {
     fallback = ""
   ): string => {
     const preferredValues = language === "mr"
-      ? [values.mr, values.en, values.hi]
+      ? [values.mr, values.en]
       : language === "hi"
-        ? [values.hi, values.en, values.mr]
-        : [values.en, values.mr, values.hi];
+        ? [values.hi, values.en]
+        : [values.en];
 
     const selected = preferredValues.find(
       (value) => typeof value === "string" && value.trim().length > 0
@@ -674,24 +674,24 @@ export function ChatInterface() {
         curative_measures: noInformation,
       };
       try {
-        advisory = await getAdvisory(diseaseId);
+        advisory = await getAdvisory(diseaseId, cropIdForApi);
       } catch (advErr) {
         console.error("Failed to get advisory:", advErr);
       }
 
       const diseaseTypeText = getLocalizedFieldValue(
         {
-          en: advisory.disease_pest || diseaseType,
+          en: advisory.disease_pest_en || advisory.disease_pest || diseaseType,
           mr: advisory.disease_pest_mr,
           hi: advisory.disease_pest_hi,
         },
         diseaseType
       );
 
-      const preventiveMeasures = formatAdvisoryText(
+      let preventiveMeasures = formatAdvisoryText(
         getLocalizedFieldValue(
           {
-            en: advisory.preventive_measures,
+            en: advisory.preventive_measures_en || advisory.preventive_measures,
             mr: advisory.preventive_measures_mr,
             hi: advisory.preventive_measures_hi,
           },
@@ -699,16 +699,25 @@ export function ChatInterface() {
         )
       ) || noInformation;
 
-      const curativeMeasures = formatAdvisoryText(
+      let curativeMeasures = formatAdvisoryText(
         getLocalizedFieldValue(
           {
-            en: advisory.curative_measures,
+            en: advisory.curative_measures_en || advisory.curative_measures,
             mr: advisory.curative_measures_mr,
             hi: advisory.curative_measures_hi,
           },
           noInformation
         )
       ) || noInformation;
+
+      const isUnknownDisease = [diseaseType, advisory.disease_pest, diseaseTypeText]
+        .filter((value): value is string => typeof value === "string")
+        .some((value) => value.toLowerCase().includes("unknown disease"));
+
+      if (isUnknownDisease) {
+        preventiveMeasures = (t("pestDetection.unknownPreventiveMeasures") as string) || preventiveMeasures;
+        curativeMeasures = (t("pestDetection.unknownCurativeMeasures", { crop: cropName }) as string) || curativeMeasures;
+      }
 
       // Step 3: Store response
       try {

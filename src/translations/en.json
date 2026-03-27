@@ -374,6 +374,8 @@
     "curativeMeasuresLabel": "Curative Measures",
     "unknownDisease": "Unknown Disease",
     "unknownDiseaseMessage": "The system could not identify a specific disease for [crop]. Please try again with a clearer image or consult a local agriculture officer.",
-    "noInformation": "No information available."
+    "noInformation": "No information available.",
+    "unknownPreventiveMeasures": "The app is currently unable to identify the exact disease from this crop image.",
+    "unknownCurativeMeasures": "Accurate diagnosis is currently not available for [crop]. Please contact a nearby agriculture expert, agriculture assistant, taluka agriculture officer, or agriculture service center for field inspection and treatment advice."
   }
 }
