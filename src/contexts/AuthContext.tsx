@@ -1,10 +1,12 @@
 import { createContext, useContext, ReactNode, useState, useEffect } from 'react';
 import { jwtVerify, importSPKI, JWTPayload } from 'jose';
 import { setTelemetryUserData } from '../lib/telemetry';
-
-// Constants
-const JWT_STORAGE_KEY = 'auth_jwt';
-const JWT_EXPIRY_DAYS = 365; // 1 year expiration
+import {
+  clearAuthToken,
+  getStoredAuthToken,
+  isAuthTokenExpired,
+  storeAuthToken,
+} from '../lib/authSession';
 
 // Location interface that matches the JWT structure
 export interface Location {
@@ -54,81 +56,153 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<User | null>(null);
   const [locations, setLocations] = useState<Location[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [publicKey, setPublicKey] = useState<CryptoKey | null>(null);
+  const [publicKeys, setPublicKeys] = useState<CryptoKey[]>([]);
 
-  // JWT validation public key
-  const publicKeyPEM = `-----BEGIN PUBLIC KEY-----
-MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAkvyeaWfmnLrbNneMjJ16
-+FeHBSAeheTiaUWGidoBI4sYEHxB3rGlr+7WGMyX4rmfFCUDnCIWGuKt32UoA9CZ
-mgE9JCbmJLM1dR35cN9yEUmXggYXRJB8pMqlt+u3jHRFieLumzk1keEiTCsQqvgs
-txlhdBHyPTo7lAcaeFWgoK1CjqDi9xlZuTNUQB8WqhhCtjiEjE1Vj/G6DzYPcJ/g
-eJNM7/Dku5awXwG7lGqjKGuXj+C9fDF/zXrXAhGSVuSMW2hYczmILDyKaes2iH8K
-cYYzlCVV0lzJ+Sa98Fvpb/tOMY6XqoTzmkU/WlRoYY7jsqFykAcbOpncyO+lm+WW
-rQIDAQAB
------END PUBLIC KEY-----`;
+  const resetAuthState = () => {
+    clearAuthToken();
+    setUser(null);
+    setLocations([]);
+    setTelemetryUserData({});
+  };
 
   // Initialize auth state on component mount
   useEffect(() => {
+    let isMounted = true;
+
+    const cleanupUrlToken = () => {
+      const url = new URL(window.location.href);
+
+      if (!url.searchParams.has('token')) {
+        return;
+      }
+
+      url.searchParams.delete('token');
+      const nextUrl = `${url.pathname}${url.search}${url.hash}`;
+      window.history.replaceState({}, document.title, nextUrl);
+    };
+
+    const extractPemBlocks = (pemText: string): string[] => {
+      const blockRegex = /-----BEGIN PUBLIC KEY-----[\s\S]*?-----END PUBLIC KEY-----/g;
+      const matches = pemText.match(blockRegex);
+
+      if (matches && matches.length > 0) {
+        const uniqueBlocks = Array.from(
+          new Set(matches.map((block) => block.trim()))
+        );
+        return uniqueBlocks;
+      }
+
+      const trimmed = pemText.trim();
+      return trimmed ? [trimmed] : [];
+    };
+
+    const loadVerificationKeys = async (): Promise<CryptoKey[]> => {
+      const keySources = [{ path: '/public.pem', required: true }];
+      const importedKeys: CryptoKey[] = [];
+
+      for (const source of keySources) {
+        const response = await fetch(source.path, { cache: 'no-store' });
+
+        if (!response.ok) {
+          if (source.required) {
+            throw new Error(`Unable to load public key: ${response.status}`);
+          }
+
+          continue;
+        }
+
+        const pemContents = await response.text();
+        const pemBlocks = extractPemBlocks(pemContents);
+
+        for (const pemBlock of pemBlocks) {
+          try {
+            const importedPublicKey = await importSPKI(pemBlock, 'RS256');
+            importedKeys.push(importedPublicKey as CryptoKey);
+          } catch (error) {
+            console.error('Failed to import one public key block from public.pem:', error);
+          }
+        }
+      }
+
+      if (importedKeys.length === 0) {
+        throw new Error('No public keys available for JWT verification.');
+      }
+
+      return importedKeys;
+    };
+
+    const authenticateToken = async (
+      token: string,
+      importedKeys: CryptoKey[],
+      shouldPersist: boolean
+    ): Promise<boolean> => {
+      const result = await validateJWT(token, importedKeys);
+
+      if (!isMounted) {
+        return false;
+      }
+
+      if (!result.isValid || !result.payload) {
+        resetAuthState();
+        return false;
+      }
+
+      if (shouldPersist && !storeAuthToken(token)) {
+        resetAuthState();
+        return false;
+      }
+
+      createUserFromPayload(result.payload);
+      return true;
+    };
+
     const initAuth = async () => {
       try {
         setIsLoading(true);
-        // Import the public key
-        const importedPublicKey = await importSPKI(publicKeyPEM, 'RS256');
-        setPublicKey(importedPublicKey);
+        const importedKeys = await loadVerificationKeys();
 
-        // Check URL params first for new JWT
+        if (!isMounted) {
+          return;
+        }
+
+        setPublicKeys(importedKeys);
+
         const urlParams = new URLSearchParams(window.location.search);
         const tokenFromUrl = urlParams.get('token');
 
-        // If JWT exists in URL, validate and store it
         if (tokenFromUrl) {
-          if (importedPublicKey) {
-            const result = await validateJWT(tokenFromUrl, importedPublicKey);
-            if (result.isValid) {
-              storeJWT(tokenFromUrl);
-              createUserFromPayload(result.payload);
-              // Clean up URL by removing the JWT parameter
-              const newUrl = window.location.pathname + window.location.hash;
-              window.history.replaceState({}, document.title, newUrl);
-            } else {
-              createUserFromPayload(null);
-            }
-          } else {
-               console.error('Public key not loaded.');
-               createUserFromPayload(null);
-          }
+          await authenticateToken(tokenFromUrl, importedKeys, true);
+          cleanupUrlToken();
+          return;
         }
-        // Otherwise, check for JWT in localStorage
-        else {
-          const storedToken = getStoredJWT();
-          if (storedToken) {
-             if (importedPublicKey) {
-              const result = await validateJWT(storedToken, importedPublicKey);
-              if (result.isValid) {
-                createUserFromPayload(result.payload);
-              } else {
-                // Token is invalid or expired, remove it
-                localStorage.removeItem(JWT_STORAGE_KEY);
-                createUserFromPayload(null);
-              }
-             } else {
-               console.error('Public key not loaded.');
-               createUserFromPayload(null);
-             }
-          } else {
-            createUserFromPayload(null);
+
+        const storedToken = getStoredAuthToken();
+
+        if (storedToken) {
+          const isAuthenticated = await authenticateToken(storedToken, importedKeys, false);
+
+          if (!isAuthenticated) {
+            resetAuthState();
           }
+        } else {
+          createUserFromPayload(null);
         }
       } catch (error) {
         console.error("Auth initialization error:", error);
-        createUserFromPayload(null);
+        resetAuthState();
       } finally {
-        setIsLoading(false);
+        if (isMounted) {
+          setIsLoading(false);
+        }
       }
     };
 
     initAuth();
-  }, [publicKeyPEM]);
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   // Create a user object from JWT payload
   const createUserFromPayload = (payload: JWTPayload | null) => {
@@ -208,53 +282,24 @@ rQIDAQAB
     });
   };
 
-  // Store JWT in localStorage with expiration
-  const storeJWT = (token: string) => {
-    try {
-      const now = new Date();
-      const expiryDate = new Date(now);
-      expiryDate.setDate(now.getDate() + JWT_EXPIRY_DAYS);
-      
-      const tokenData = {
-        token,
-        expiry: expiryDate.getTime()
-      };
-      
-      localStorage.setItem(JWT_STORAGE_KEY, JSON.stringify(tokenData));
-      return true;
-    } catch (error) {
-      console.error("Error storing JWT:", error);
-      return false;
-    }
-  };
-
-  // Retrieve JWT from localStorage
-  const getStoredJWT = (): string | null => {
-    try {
-      const tokenData = localStorage.getItem(JWT_STORAGE_KEY);
-      if (!tokenData) return null;
-      
-      const parsedData = JSON.parse(tokenData);
-      const now = new Date().getTime();
-      
-      // Check if token is expired
-      if (now > parsedData.expiry) {
-        localStorage.removeItem(JWT_STORAGE_KEY);
-        return null;
-      }
-      
-      return parsedData.token;
-    } catch (error) {
-      console.error("Error retrieving JWT:", error);
-      return null;
-    }
-  };
-
   // Function to validate JWT and extract payload
-  async function validateJWT(token: string, key: CryptoKey): Promise<{ isValid: boolean; payload: JWTPayload | null }> {
+  async function validateJWT(token: string, keys: CryptoKey[]): Promise<{ isValid: boolean; payload: JWTPayload | null }> {
     try {
-      const { payload } = await jwtVerify(token, key);
-      return { isValid: true, payload };
+      for (const key of keys) {
+        try {
+          const { payload } = await jwtVerify(token, key, { algorithms: ['RS256'] });
+
+          if (isAuthTokenExpired(token)) {
+            return { isValid: false, payload: null };
+          }
+
+          return { isValid: true, payload };
+        } catch {
+          continue;
+        }
+      }
+
+      throw new Error('JWT verification failed for all configured public keys.');
     } catch (e) {
       console.error('JWT verification failed:', e);
       return { isValid: false, payload: null };
@@ -264,17 +309,20 @@ rQIDAQAB
   // Public method to set auth token
   const setAuthToken = async (token: string): Promise<boolean> => {
     try {
-      if (publicKey) {
-        const result = await validateJWT(token, publicKey);
-        if (result.isValid) {
-          storeJWT(token);
+      if (publicKeys.length > 0) {
+        const result = await validateJWT(token, publicKeys);
+
+        if (result.isValid && result.payload && storeAuthToken(token)) {
           createUserFromPayload(result.payload);
           return true;
         }
       }
+
+      resetAuthState();
       return false;
     } catch (error) {
       console.error("Error setting auth token:", error);
+      resetAuthState();
       return false;
     }
   };
@@ -298,12 +346,7 @@ rQIDAQAB
 
   // Logout function
   const logout = () => {
-    // Clear user data and token
-    setUser(null);
-    setLocations([]);
-    localStorage.removeItem(JWT_STORAGE_KEY);
-    // Clear all telemetry data on logout
-    setTelemetryUserData({});
+    resetAuthState();
   };
 
   return (

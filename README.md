@@ -49,7 +49,7 @@ This application uses **JWT (JSON Web Token)** authentication with **RS256 algor
 
 1. **Token-based Access:** Users access the app by visiting: `http://localhost:5173?token=YOUR_JWT_TOKEN`
 2. **Token Validation:** The app validates the JWT using RSA public key cryptography
-3. **Session Storage:** Valid tokens are stored locally for subsequent visits
+3. **Session Storage:** Valid tokens are stored in a secure browser cookie for subsequent visits
 4. **Automatic Cleanup:** The token parameter is removed from the URL after successful authentication
 
 ### JWT Token Requirements
@@ -100,33 +100,11 @@ All API calls require JWT authentication via Bearer token in headers.
 
 2. **Set the Algorithm to RS256**
 
-3. **Use the demo public/private key pair:**
+3. **Use your own development key pair:**
 
-   **Private Key (for signing):**
-   ```
-   -----BEGIN PRIVATE KEY-----
-   MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQC7VJTUt9Us8cKj
-   MzEfYyjiWA4R4/M2bS1GB4t7NXp98C3SC6dVMvDuictGeurT8jNbvJZHtCSuYEvu
-   NMoSfm76oqFvAp8Gy0iz5sxjZmSnXyCdPEovGhLa0VzMaQ8s+CLOyS56YyCFGeJZ
-   qgtzJ6GR3eqoYSW9b9UMvkBpZODSctWSNGj3P7jRFDO5VoTwCQAWbFnOjDfH5Ulg
-   p2PKSQnSJP3AJLQNFNe7br1XbrhV//eO+t51mIpGSDCUv3E0DDFcWDTH9cXDTTlR
-   ZVEiR2BwpZOOkE/Z0/BVnhZYL71oZV34bKfWjQIt6V/isSMahdoAAQ8GR6YpFCyI
-   lXcbmwIDAQAB
-   -----END PRIVATE KEY-----
-   ```
-
-   **Public Key (already configured in the app):**
-   ```
-   -----BEGIN PUBLIC KEY-----
-   MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAu1SU1LfVLPHCozMxH2Mo
-   4lgOEePzNm0tRgeLezV6ffAt0gunVTLw7onLRnrq0/IzW7yWR7QkrmBL7jTKEn5u
-   +qKhbwKfBstIs+bMY2Zkp18gnTxKLxoS2tFczGkPLPgizskuemMghRniWaoLcyeh
-   kd3qqGElvW/VDL5AaWTg0nLVkjRo9z+40RQzuVaE8AkAFmxZzow3x+VJYKdjykkJ
-   0iT9wCS0DRTXu269V264Vf/3jvredZiKRkgwlL9xNAwxXFg0x/XFw005UWVRIkdg
-   cKWTjpBP2dPwVZ4WWC+9aGVd+Gyn1o0CLelf4rEjGoXbAAEgAqeGUxrcIlbjXfbc
-   mwIDAQAB
-   -----END PUBLIC KEY-----
-   ```
+   - Generate a temporary RSA key pair using the steps in the `Production Setup` section below.
+   - Paste your private key into jwt.io for signing.
+   - Copy the matching public key into `public/public.pem` before testing.
 
 4. **Set the payload with your user data:**
    ```json
@@ -162,7 +140,7 @@ All API calls require JWT authentication via Bearer token in headers.
 - **[jwtbuilder.jamiekurtz.com](https://jwtbuilder.jamiekurtz.com)** - Simple JWT builder
 - **[token.dev](https://token.dev)** - JWT generator with various algorithms
 
-**⚠️ IMPORTANT: The demo keys are for development only. DO NOT use them in production!**
+**⚠️ IMPORTANT:** Never commit private keys to the repository, even for development or demos.
 
 ## Production Setup
 
@@ -192,14 +170,12 @@ openssl rsa -pubout -in private-key.pem -out public-key.pem
 
 ### 2. Update the Public Key
 
-Replace the `publicKeyPEM` in `src/contexts/AuthContext.tsx` with your production public key:
+Replace the contents of `public/public.pem` with your production public key:
 
-```typescript
-// In src/contexts/AuthContext.tsx
-const publicKeyPEM = `-----BEGIN PUBLIC KEY-----
+```pem
+-----BEGIN PUBLIC KEY-----
 YOUR_PRODUCTION_PUBLIC_KEY_HERE
------END PUBLIC KEY-----`;
-
+-----END PUBLIC KEY-----
 ```
 
 ### 3. Secure Your Private Key
@@ -234,7 +210,8 @@ src/
 
 ### Key Files
 
-- **`src/contexts/AuthContext.tsx`**: Main authentication logic with demo public key
+- **`src/contexts/AuthContext.tsx`**: Main authentication logic and cookie-backed session bootstrap
+- **`public/public.pem`**: Runtime-loaded RSA public key for JWT verification
 - **`src/pages/ErrorPage.tsx`**: Handles authentication errors
 
 ### Environment Variables
@@ -279,7 +256,7 @@ VITE_JWT_ISSUER=your-auth-service
 ### Production Checklist
 
 - [ ] Generate your own RSA key pair
-- [ ] Replace demo public key in `AuthContext.tsx`
+- [ ] Replace the demo public key in `public/public.pem`
 - [ ] Secure your private key (never commit to version control)
 - [ ] Set appropriate JWT expiration times
 - [ ] Implement proper token refresh mechanisms
@@ -306,11 +283,11 @@ VITE_JWT_ISSUER=your-auth-service
 
 **2. JWT Verification Failed**
 - Confirm token is signed with RS256 algorithm
-- Check that public key in `AuthContext.tsx` is correct
+- Check that `public/public.pem` is correct
 - Verify token hasn't expired
 
 **3. Token Not Persisting**
-- Check browser's localStorage for token data
+- Check the `auth_jwt` cookie in browser developer tools
 - Ensure token includes required claims (`sub`, `name`, `email`)
 
 ### Getting Help

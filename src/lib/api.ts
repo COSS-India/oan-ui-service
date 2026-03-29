@@ -1,6 +1,7 @@
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
 import { v4 as uuidv4 } from 'uuid';
 import { environment } from '@/config/environment';
+import { clearAuthToken, getStoredAuthToken } from '@/lib/authSession';
 
 export interface LocationData {
   latitude: number;
@@ -28,9 +29,6 @@ interface TTSResponse {
   session_id: string;
 }
 
-// Constants
-const JWT_STORAGE_KEY = 'auth_jwt';
-
 class ApiService {
   private apiUrl: string = environment.apiUrl;
   private locationData: LocationData | null = null;
@@ -54,21 +52,10 @@ class ApiService {
 
   private getAuthToken(): string | null {
     try {
-      const tokenData = localStorage.getItem(JWT_STORAGE_KEY);
-      if (!tokenData) return null;
-      
-      const parsedData = JSON.parse(tokenData);
-      const now = new Date().getTime();
-      
-      // Check if token is expired
-      if (now > parsedData.expiry) {
-        localStorage.removeItem(JWT_STORAGE_KEY);
-        return null;
-      }
-      
-      return parsedData.token;
+      return getStoredAuthToken();
     } catch (error) {
       console.error("Error retrieving JWT for API calls:", error);
+      clearAuthToken();
       return null;
     }
   }
