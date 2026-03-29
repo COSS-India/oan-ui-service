@@ -150,18 +150,10 @@ export const clearAuthToken = (): void => {
 };
 
 export const getStoredAuthToken = (): string | null => {
-  if (inMemoryAuthToken) {
-    if (isAuthTokenExpired(inMemoryAuthToken)) {
-      clearAuthToken();
-      return null;
-    }
-
-    return inMemoryAuthToken;
-  }
-
   const encodedToken = getCookieValue(AUTH_TOKEN_COOKIE_NAME);
 
   if (!encodedToken) {
+    inMemoryAuthToken = null;
     return null;
   }
 
@@ -173,7 +165,10 @@ export const getStoredAuthToken = (): string | null => {
       return null;
     }
 
-    inMemoryAuthToken = token;
+    if (inMemoryAuthToken !== token) {
+      inMemoryAuthToken = token;
+    }
+
     return token;
   } catch (error) {
     console.error('Error reading auth token from cookie:', error);
