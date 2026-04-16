@@ -16,18 +16,6 @@ export function LanguageSelectionScreen({ onLanguageSelected }: { onLanguageSele
   
   const languageOptions: LanguageOption[] = [
     {
-      code: "en",
-      nativeName: "English",
-      englishName: "English",
-      selectText: "Select English"
-    },
-    // {
-    //   code: "hi",
-    //   nativeName: "हिंदी",
-    //   englishName: "Hindi",
-    //   selectText: "हिंदी चुनें"
-    // },
-    {
       code: "mr",
       nativeName: "मराठी",
       englishName: "Marathi",
@@ -38,6 +26,18 @@ export function LanguageSelectionScreen({ onLanguageSelected }: { onLanguageSele
       nativeName: "भीली",
       englishName: "Bhili",
       selectText: "भीली चूनो"
+    },
+    {
+      code: "en",
+      nativeName: "English",
+      englishName: "English",
+      selectText: "Select English"
+    },
+    {
+      code: "hi",
+      nativeName: "हिंदी",
+      englishName: "Hindi",
+      selectText: "हिंदी चुनें"
     }
   ];
   
@@ -62,7 +62,7 @@ export function LanguageSelectionScreen({ onLanguageSelected }: { onLanguageSele
 
   return (
     <div className="flex flex-col items-center justify-center min-h-[80vh] p-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-3xl">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 w-full max-w-3xl">
         {languageOptions.map((lang) => (
           <div 
             key={lang.code}
