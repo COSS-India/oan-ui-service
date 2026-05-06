@@ -31,7 +31,7 @@ interface TTSResponse {
 const JWT_STORAGE_KEY = 'auth_jwt';
 
 class ApiService {
-  private apiUrl: string = 'https://prodaskvistaar.mahapocra.gov.in';
+  private apiUrl: string = 'http://10.208.39.91:8000';
   private locationData: LocationData | null = null;
   private currentSessionId: string | null = null;
   private axiosInstance: AxiosInstance;
