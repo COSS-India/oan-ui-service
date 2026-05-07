@@ -1,5 +1,12 @@
 import { createContext, useContext, ReactNode, useState, useEffect } from 'react';
-import { jwtVerify, importSPKI, JWTPayload } from 'jose';
+import { KJUR } from 'jsrsasign';
+
+interface JWTPayload {
+  sub?: string;
+  name?: string;
+  email?: string;
+  [key: string]: unknown;
+}
 
 // Constants
 const JWT_STORAGE_KEY = 'auth_jwt';
@@ -39,7 +46,6 @@ interface AuthProviderProps {
 export function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [publicKey, setPublicKey] = useState<CryptoKey | null>(null);
 
   // JWT validation public key
   const publicKeyPEM = `-----BEGIN PUBLIC KEY-----
@@ -52,14 +58,32 @@ SkOdkbqm+Zqh+cQ4ZDQOciLjwyuDROu5mU7q+9iZxwBk5GU8hYz6m5GRBrX1+eAs
 QQIDAQAB
 -----END PUBLIC KEY-----`;
 
+  // Function to validate JWT and extract payload using jsrsasign
+  function validateJWT(token: string): { isValid: boolean; payload: JWTPayload | null } {
+    try {
+      const parsed = KJUR.jws.JWS.parse(token);
+      if (!parsed) {
+        return { isValid: false, payload: null };
+      }
+      
+      const isValid = KJUR.jws.JWS.verify(token, publicKeyPEM, ['RS256']);
+      if (!isValid) {
+        return { isValid: false, payload: null };
+      }
+      
+      const payload = parsed.payloadObj as JWTPayload | null;
+      return { isValid: true, payload };
+    } catch (e) {
+      console.error('JWT verification failed:', e);
+      return { isValid: false, payload: null };
+    }
+  }
+
   // Initialize auth state on component mount
   useEffect(() => {
     const initAuth = async () => {
       try {
         setIsLoading(true);
-        // Import the public key
-        const importedPublicKey = await importSPKI(publicKeyPEM, 'RS256');
-        setPublicKey(importedPublicKey);
 
         // Check URL params first for new JWT
         const urlParams = new URLSearchParams(window.location.search);
@@ -67,39 +91,29 @@ QQIDAQAB
 
         // If JWT exists in URL, validate and store it
         if (tokenFromUrl) {
-          if (importedPublicKey) {
-            const result = await validateJWT(tokenFromUrl, importedPublicKey);
-            if (result.isValid) {
-              storeJWT(tokenFromUrl);
-              createUserFromPayload(result.payload);
-              // Clean up URL by removing the JWT parameter
-              const newUrl = window.location.pathname + window.location.hash;
-              window.history.replaceState({}, document.title, newUrl);
-            } else {
-              setUser(null);
-            }
+          const result = validateJWT(tokenFromUrl);
+          if (result.isValid) {
+            storeJWT(tokenFromUrl);
+            createUserFromPayload(result.payload);
+            // Clean up URL by removing the JWT parameter
+            const newUrl = window.location.pathname + window.location.hash;
+            window.history.replaceState({}, document.title, newUrl);
           } else {
-               console.error('Public key not loaded.');
-               setUser(null);
+            setUser(null);
           }
         }
         // Otherwise, check for JWT in localStorage
         else {
           const storedToken = getStoredJWT();
           if (storedToken) {
-             if (importedPublicKey) {
-              const result = await validateJWT(storedToken, importedPublicKey);
-              if (result.isValid) {
-                createUserFromPayload(result.payload);
-              } else {
-                // Token is invalid or expired, remove it
-                localStorage.removeItem(JWT_STORAGE_KEY);
-                setUser(null);
-              }
-             } else {
-               console.error('Public key not loaded.');
-               setUser(null);
-             }
+            const result = validateJWT(storedToken);
+            if (result.isValid) {
+              createUserFromPayload(result.payload);
+            } else {
+              // Token is invalid or expired, remove it
+              localStorage.removeItem(JWT_STORAGE_KEY);
+              setUser(null);
+            }
           } else {
             setUser(null);
           }
@@ -183,27 +197,14 @@ QQIDAQAB
     }
   };
 
-  // Function to validate JWT and extract payload
-  async function validateJWT(token: string, key: CryptoKey): Promise<{ isValid: boolean; payload: JWTPayload | null }> {
-    try {
-      const { payload } = await jwtVerify(token, key);
-      return { isValid: true, payload };
-    } catch (e) {
-      console.error('JWT verification failed:', e);
-      return { isValid: false, payload: null };
-    }
-  }
-
   // Public method to set auth token
   const setAuthToken = async (token: string): Promise<boolean> => {
     try {
-      if (publicKey) {
-        const result = await validateJWT(token, publicKey);
-        if (result.isValid) {
-          storeJWT(token);
-          createUserFromPayload(result.payload);
-          return true;
-        }
+      const result = validateJWT(token);
+      if (result.isValid) {
+        storeJWT(token);
+        createUserFromPayload(result.payload);
+        return true;
       }
       return false;
     } catch (error) {
