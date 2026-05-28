@@ -21,6 +21,7 @@ import {
 import { useTts } from "@/hooks/use-tts";
 import { useLanguage } from "@/components/LanguageProvider";
 import { useAuth } from "@/contexts/AuthContext";
+import { getUserInitials } from "@/lib/user";
 
 interface ChatMessageProps {
   message: string;
@@ -65,10 +66,6 @@ export function ChatMessage({
   const { t } = useLanguage();
   const { user } = useAuth();
 
-  const getInitials = (username: string) => {
-    return username?.substring(0, 2).toUpperCase() || "U";
-  };
-  
   const handlePlayAudio = () => {
     toggleAudio(message, messageId, responseLanguage);
   };
@@ -305,7 +302,7 @@ export function ChatMessage({
             <>
               <AvatarImage src="" alt="User" />
               <AvatarFallback>
-                {getInitials(user?.username || "U")}
+                {getUserInitials(user?.username)}
               </AvatarFallback>
             </>
           ) : (
