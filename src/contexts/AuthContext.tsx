@@ -1,10 +1,174 @@
-import { createContext, useContext, ReactNode, useState, useEffect } from 'react';
+import { createContext, useContext, ReactNode, useState, useEffect, useCallback } from 'react';
 import { jwtVerify, importSPKI, JWTPayload } from 'jose';
 import { setTelemetryUserData } from '../lib/telemetry';
+import { resolveUserDisplayName } from '../lib/user';
 
 // Constants
 const JWT_STORAGE_KEY = 'auth_jwt';
 const JWT_EXPIRY_DAYS = 365; // 1 year expiration
+const JWT_PARAM_NAMES = ['token', 'jwt', 'authToken', 'auth_token', 'access_token', 'accessToken', 'id_token', 'idToken'];
+const JWT_MESSAGE_TOKEN_KEYS = [...JWT_PARAM_NAMES, 'value'];
+const JWT_MESSAGE_NESTED_KEYS = ['data', 'payload', 'detail'];
+const JWT_PATTERN = /^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/;
+const JWT_PUBLIC_KEY_PATH = `${import.meta.env.BASE_URL}jwt-public-key.pem`;
+
+interface AuthTokenOptions {
+  persist?: boolean;
+  clearOnInvalid?: boolean;
+}
+
+type ReactNativeWebViewWindow = Window & {
+  ReactNativeWebView?: {
+    postMessage: (message: string) => void;
+  };
+};
+
+const normalizeJWT = (value: unknown): string | null => {
+  if (typeof value !== 'string') return null;
+
+  const token = value.trim().replace(/^Bearer\s+/i, '');
+  return JWT_PATTERN.test(token) ? token : null;
+};
+
+const getTokenFromUrlParams = (): string | null => {
+  const urlParams = new URLSearchParams(window.location.search);
+
+  for (const paramName of JWT_PARAM_NAMES) {
+    const token = normalizeJWT(urlParams.get(paramName));
+    if (token) return token;
+  }
+
+  return null;
+};
+
+const removeAuthParamsFromUrl = () => {
+  const url = new URL(window.location.href);
+  let changed = false;
+
+  JWT_PARAM_NAMES.forEach((paramName) => {
+    if (url.searchParams.has(paramName)) {
+      url.searchParams.delete(paramName);
+      changed = true;
+    }
+  });
+
+  if (changed) {
+    window.history.replaceState({}, document.title, `${url.pathname}${url.search}${url.hash}`);
+  }
+};
+
+const extractTokenFromParamString = (value: string): string | null => {
+  try {
+    const params = new URLSearchParams(value.startsWith('?') ? value.slice(1) : value);
+
+    for (const paramName of JWT_PARAM_NAMES) {
+      const token = normalizeJWT(params.get(paramName));
+      if (token) return token;
+    }
+  } catch {
+    return null;
+  }
+
+  return null;
+};
+
+const extractTokenFromMessageData = (data: unknown, depth = 0): string | null => {
+  if (depth > 3 || data == null) return null;
+
+  const directToken = normalizeJWT(data);
+  if (directToken) return directToken;
+
+  if (typeof data === 'string') {
+    try {
+      const parsedData = JSON.parse(data);
+      const parsedToken = extractTokenFromMessageData(parsedData, depth + 1);
+      if (parsedToken) return parsedToken;
+    } catch {
+      // Message data is often a plain token or URL-encoded form string.
+    }
+
+    return extractTokenFromParamString(data);
+  }
+
+  if (typeof data !== 'object' || Array.isArray(data)) return null;
+
+  const messageData = data as Record<string, unknown>;
+
+  for (const key of JWT_MESSAGE_TOKEN_KEYS) {
+    const token = normalizeJWT(messageData[key]);
+    if (token) return token;
+  }
+
+  for (const key of JWT_MESSAGE_NESTED_KEYS) {
+    const token = extractTokenFromMessageData(messageData[key], depth + 1);
+    if (token) return token;
+  }
+
+  return null;
+};
+
+// Store JWT in localStorage with expiration
+const storeJWT = (token: string) => {
+  try {
+    const now = new Date();
+    const expiryDate = new Date(now);
+    expiryDate.setDate(now.getDate() + JWT_EXPIRY_DAYS);
+    
+    const tokenData = {
+      token,
+      expiry: expiryDate.getTime()
+    };
+    
+    localStorage.setItem(JWT_STORAGE_KEY, JSON.stringify(tokenData));
+    return true;
+  } catch (error) {
+    console.error("Error storing JWT:", error);
+    return false;
+  }
+};
+
+// Retrieve JWT from localStorage
+const getStoredJWT = (): string | null => {
+  try {
+    const tokenData = localStorage.getItem(JWT_STORAGE_KEY);
+    if (!tokenData) return null;
+    
+    const parsedData = JSON.parse(tokenData);
+    const now = new Date().getTime();
+    
+    // Check if token is expired
+    if (now > parsedData.expiry) {
+      localStorage.removeItem(JWT_STORAGE_KEY);
+      return null;
+    }
+    
+    return parsedData.token;
+  } catch (error) {
+    console.error("Error retrieving JWT:", error);
+    return null;
+  }
+};
+
+const loadJwtPublicKeyPEM = async (): Promise<string> => {
+  const response = await fetch(JWT_PUBLIC_KEY_PATH, { cache: 'no-store' });
+
+  if (!response.ok) {
+    throw new Error(`Unable to load JWT public key PEM from ${JWT_PUBLIC_KEY_PATH}`);
+  }
+
+  return response.text();
+};
+
+// Function to validate JWT and extract payload
+async function validateJWT(token: string, key: CryptoKey): Promise<{ isValid: boolean; payload: JWTPayload | null }> {
+  try {
+    const { payload } = await jwtVerify(token, key);
+    return { isValid: true, payload };
+  } catch (e) {
+    console.error('JWT verification failed:', e);
+    return { isValid: false, payload: null };
+  }
+}
 
 // Location interface that matches the JWT structure
 export interface Location {
@@ -56,82 +220,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [publicKey, setPublicKey] = useState<CryptoKey | null>(null);
 
-  // JWT validation public key
-  const publicKeyPEM = `-----BEGIN PUBLIC KEY-----
-MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAkvyeaWfmnLrbNneMjJ16
-+FeHBSAeheTiaUWGidoBI4sYEHxB3rGlr+7WGMyX4rmfFCUDnCIWGuKt32UoA9CZ
-mgE9JCbmJLM1dR35cN9yEUmXggYXRJB8pMqlt+u3jHRFieLumzk1keEiTCsQqvgs
-txlhdBHyPTo7lAcaeFWgoK1CjqDi9xlZuTNUQB8WqhhCtjiEjE1Vj/G6DzYPcJ/g
-eJNM7/Dku5awXwG7lGqjKGuXj+C9fDF/zXrXAhGSVuSMW2hYczmILDyKaes2iH8K
-cYYzlCVV0lzJ+Sa98Fvpb/tOMY6XqoTzmkU/WlRoYY7jsqFykAcbOpncyO+lm+WW
-rQIDAQAB
------END PUBLIC KEY-----`;
-
-  // Initialize auth state on component mount
-  useEffect(() => {
-    const initAuth = async () => {
-      try {
-        setIsLoading(true);
-        // Import the public key
-        const importedPublicKey = await importSPKI(publicKeyPEM, 'RS256');
-        setPublicKey(importedPublicKey);
-
-        // Check URL params first for new JWT
-        const urlParams = new URLSearchParams(window.location.search);
-        const tokenFromUrl = urlParams.get('token');
-
-        // If JWT exists in URL, validate and store it
-        if (tokenFromUrl) {
-          if (importedPublicKey) {
-            const result = await validateJWT(tokenFromUrl, importedPublicKey);
-            if (result.isValid) {
-              storeJWT(tokenFromUrl);
-              createUserFromPayload(result.payload);
-              // Clean up URL by removing the JWT parameter
-              const newUrl = window.location.pathname + window.location.hash;
-              window.history.replaceState({}, document.title, newUrl);
-            } else {
-              createUserFromPayload(null);
-            }
-          } else {
-               console.error('Public key not loaded.');
-               createUserFromPayload(null);
-          }
-        }
-        // Otherwise, check for JWT in localStorage
-        else {
-          const storedToken = getStoredJWT();
-          if (storedToken) {
-             if (importedPublicKey) {
-              const result = await validateJWT(storedToken, importedPublicKey);
-              if (result.isValid) {
-                createUserFromPayload(result.payload);
-              } else {
-                // Token is invalid or expired, remove it
-                localStorage.removeItem(JWT_STORAGE_KEY);
-                createUserFromPayload(null);
-              }
-             } else {
-               console.error('Public key not loaded.');
-               createUserFromPayload(null);
-             }
-          } else {
-            createUserFromPayload(null);
-          }
-        }
-      } catch (error) {
-        console.error("Auth initialization error:", error);
-        createUserFromPayload(null);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    initAuth();
-  }, [publicKeyPEM]);
-
   // Create a user object from JWT payload
-  const createUserFromPayload = (payload: JWTPayload | null) => {
+  const createUserFromPayload = useCallback((payload: JWTPayload | null) => {
     if (!payload) {
       setUser(null);
       setLocations([]);
@@ -140,8 +230,8 @@ rQIDAQAB
       return;
     }
     
-    // Extract name from payload, use fallbacks
-    const name = payload.name as string || 'Anonymous User';
+    // Extract a human-readable name and avoid using phone-like identifiers as display names.
+    const name = resolveUserDisplayName(payload as JWTPayload & Record<string, unknown>);
     
     // For email, try to get from payload or use fallback
     // let email = 'user@example.com';
@@ -206,71 +296,123 @@ rQIDAQAB
       unique_id: unique_id,
       locations: validatedLocations
     });
-  };
+  }, []);
 
-  // Store JWT in localStorage with expiration
-  const storeJWT = (token: string) => {
-    try {
-      const now = new Date();
-      const expiryDate = new Date(now);
-      expiryDate.setDate(now.getDate() + JWT_EXPIRY_DAYS);
-      
-      const tokenData = {
-        token,
-        expiry: expiryDate.getTime()
-      };
-      
-      localStorage.setItem(JWT_STORAGE_KEY, JSON.stringify(tokenData));
-      return true;
-    } catch (error) {
-      console.error("Error storing JWT:", error);
-      return false;
-    }
-  };
+  const authenticateWithToken = useCallback(async (
+    token: string,
+    key: CryptoKey,
+    options: AuthTokenOptions = {}
+  ): Promise<boolean> => {
+    const { persist = true, clearOnInvalid = false } = options;
+    const result = await validateJWT(token, key);
 
-  // Retrieve JWT from localStorage
-  const getStoredJWT = (): string | null => {
-    try {
-      const tokenData = localStorage.getItem(JWT_STORAGE_KEY);
-      if (!tokenData) return null;
-      
-      const parsedData = JSON.parse(tokenData);
-      const now = new Date().getTime();
-      
-      // Check if token is expired
-      if (now > parsedData.expiry) {
-        localStorage.removeItem(JWT_STORAGE_KEY);
-        return null;
+    if (result.isValid) {
+      if (persist) {
+        storeJWT(token);
       }
-      
-      return parsedData.token;
-    } catch (error) {
-      console.error("Error retrieving JWT:", error);
-      return null;
+      createUserFromPayload(result.payload);
+      return true;
     }
-  };
 
-  // Function to validate JWT and extract payload
-  async function validateJWT(token: string, key: CryptoKey): Promise<{ isValid: boolean; payload: JWTPayload | null }> {
-    try {
-      const { payload } = await jwtVerify(token, key);
-      return { isValid: true, payload };
-    } catch (e) {
-      console.error('JWT verification failed:', e);
-      return { isValid: false, payload: null };
+    if (clearOnInvalid) {
+      createUserFromPayload(null);
     }
-  }
+
+    return false;
+  }, [createUserFromPayload]);
+
+  // Initialize auth state on component mount.
+  useEffect(() => {
+    const initAuth = async () => {
+      try {
+        setIsLoading(true);
+        const publicKeyPEM = await loadJwtPublicKeyPEM();
+        const importedPublicKey = await importSPKI(publicKeyPEM, 'RS256');
+        setPublicKey(importedPublicKey);
+
+        const tokenFromUrl = getTokenFromUrlParams();
+
+        if (tokenFromUrl) {
+          const accepted = await authenticateWithToken(tokenFromUrl, importedPublicKey, {
+            persist: true,
+            clearOnInvalid: true,
+          });
+
+          if (accepted) {
+            removeAuthParamsFromUrl();
+          }
+
+          return;
+        }
+
+        const storedToken = getStoredJWT();
+
+        if (storedToken) {
+          const accepted = await authenticateWithToken(storedToken, importedPublicKey, {
+            persist: false,
+            clearOnInvalid: true,
+          });
+
+          if (!accepted) {
+            localStorage.removeItem(JWT_STORAGE_KEY);
+          }
+
+          return;
+        }
+
+        createUserFromPayload(null);
+      } catch (error) {
+        console.error("Auth initialization error:", error);
+        createUserFromPayload(null);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    initAuth();
+  }, [authenticateWithToken, createUserFromPayload]);
+
+  useEffect(() => {
+    if (!publicKey) return;
+
+    const handleAuthMessage = async (event: MessageEvent) => {
+      const token = extractTokenFromMessageData(event.data);
+      if (!token) return;
+
+      const accepted = await authenticateWithToken(token, publicKey, { persist: true });
+
+      if (accepted) {
+        try {
+          window.parent.postMessage({ type: 'auth-token-accepted', timestamp: new Date().toISOString() }, '*');
+        } catch (error) {
+          console.error('Unable to notify parent that auth token was accepted:', error);
+        }
+      }
+    };
+
+    window.addEventListener('message', handleAuthMessage);
+    document.addEventListener('message', handleAuthMessage as EventListener);
+
+    try {
+      window.parent.postMessage({ type: 'auth-token-request', timestamp: new Date().toISOString() }, '*');
+      (window as ReactNativeWebViewWindow).ReactNativeWebView?.postMessage(
+        JSON.stringify({ type: 'auth-token-request', timestamp: new Date().toISOString() })
+      );
+    } catch (error) {
+      console.error('Unable to request auth token from webview host:', error);
+    }
+
+    return () => {
+      window.removeEventListener('message', handleAuthMessage);
+      document.removeEventListener('message', handleAuthMessage as EventListener);
+    };
+  }, [authenticateWithToken, publicKey]);
 
   // Public method to set auth token
   const setAuthToken = async (token: string): Promise<boolean> => {
     try {
       if (publicKey) {
-        const result = await validateJWT(token, publicKey);
-        if (result.isValid) {
-          storeJWT(token);
-          createUserFromPayload(result.payload);
-          return true;
-        }
+        return authenticateWithToken(token, publicKey, { persist: true });
       }
       return false;
     } catch (error) {

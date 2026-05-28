@@ -1,12 +1,18 @@
 import { Layout } from "@/components/Layout";
 import { Button } from "@/components/ui/button";
-import { useLocation } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
+import { Navigate, useLocation } from "react-router-dom";
 
 const ErrorPage = () => {
+  const { user } = useAuth();
   const location = useLocation();
   const searchParams = new URLSearchParams(location.search);
   const reason = searchParams.get("reason");
   const isGuestLimit = reason === "guest_limit";
+
+  if (user?.authenticated && !isGuestLimit) {
+    return <Navigate to="/chat" replace />;
+  }
 
   const title = isGuestLimit ? "Guest Access Limit Reached" : "Not Authenticated";
   const description = isGuestLimit
