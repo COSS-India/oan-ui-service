@@ -20,6 +20,7 @@ import {
 import { Menu, User, LogOut } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/components/LanguageProvider";
+import { getUserInitials } from "@/lib/user";
 interface LayoutProps {
   children: ReactNode;
   showFooter?: boolean;
@@ -60,10 +61,6 @@ export function Layout({ children, showFooter = true }: LayoutProps) {
     };
   }, [showFooter]);
   
-  const getInitials = (username: string) => {
-    return username?.substring(0, 2).toUpperCase() || "U";
-  };
-
   return (
     <div className="flex flex-col min-h-screen">
       <header ref={headerRef} className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b border-border flex items-center justify-between p-3">
@@ -82,7 +79,7 @@ export function Layout({ children, showFooter = true }: LayoutProps) {
                   <Avatar className="h-8 w-8">
                     <AvatarImage src="" alt="User" />
                     <AvatarFallback>
-                      {getInitials(user.username)}
+                      {getUserInitials(user.username)}
                     </AvatarFallback>
                   </Avatar>
                 </Button>
@@ -128,7 +125,7 @@ export function Layout({ children, showFooter = true }: LayoutProps) {
                       <Avatar className="h-9 w-9">
                         <AvatarImage src="" alt="User" />
                         <AvatarFallback>
-                          {getInitials(user.username)}
+                          {getUserInitials(user.username)}
                         </AvatarFallback>
                       </Avatar>
                       <div>
