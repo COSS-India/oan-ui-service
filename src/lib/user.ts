@@ -1,22 +1,28 @@
 const toText = (value: unknown) => (typeof value === "string" ? value.trim() : "");
 
+export const DEFAULT_USER_DISPLAY_NAME = "Test User";
+
+const isNumericName = (value: string) => {
+  const compactName = value.replace(/[\s()+-]/g, "");
+  return compactName.length > 0 && /^\d+$/.test(compactName);
+};
+
 export const resolveUserDisplayName = (user: Record<string, unknown>): string => {
   const firstName = toText(user.given_name) || toText(user.first_name);
   const lastName = toText(user.family_name) || toText(user.last_name);
   const fullName = [firstName, lastName].filter(Boolean).join(" ");
 
-  if (fullName) {
+  if (fullName && !isNumericName(fullName)) {
     return fullName;
   }
 
   const fallbackName = toText(user.name) || toText(user.preferred_username) || toText(user.username);
-  const compactName = fallbackName.replace(/[\s()+-]/g, "");
 
-  if (fallbackName && !(compactName.length >= 8 && /^\d+$/.test(compactName))) {
+  if (fallbackName && !isNumericName(fallbackName)) {
     return fallbackName;
   }
 
-  return "Anonymous User";
+  return DEFAULT_USER_DISPLAY_NAME;
 };
 
 export const getUserInitials = (value?: string | null): string => {
