@@ -376,6 +376,8 @@
     "unknownDiseaseMessage": "The system could not identify a specific disease for [crop]. Please try again with a clearer image or consult a local agriculture officer.",
     "noInformation": "No information available.",
     "unknownPreventiveMeasures": "The app is currently unable to identify the exact disease from this crop image.",
-    "unknownCurativeMeasures": "Accurate diagnosis is currently not available for [crop]. Please contact a nearby agriculture expert, agriculture assistant, taluka agriculture officer, or agriculture service center for field inspection and treatment advice."
+    "unknownCurativeMeasures": "Accurate diagnosis is currently not available for [crop]. Please contact a nearby agriculture expert, agriculture assistant, taluka agriculture officer, or agriculture service center for field inspection and treatment advice.",
+    "chatAnalysisPrompt": "Please perform pest and disease analysis for the uploaded crop image. Image ID: [imageId]. Crop: [cropName]. Sowing date: [sowingDate]. crop_id: [crop_id]. crop_type: [crop_type].",
+    "uploadError": "Could not upload the image. Please try again."
   }
 }

@@ -22,6 +22,17 @@ export interface SuggestionItem {
   question: string;
 }
 
+export interface PestUploadResponse {
+  status: string;
+  id: string;
+  upload_id: string;
+  url: string;
+  crop_id: string;
+  crop_type: string;
+  sowing_date: string;
+  message: string;
+}
+
 interface TTSResponse {
   status: string;
   audio_data: string;
@@ -198,6 +209,37 @@ class ApiService {
       console.error('Error sending user query:', error);
       throw error;
     }
+  }
+
+  async uploadPestImage(
+    image: File,
+    cropId: string,
+    cropType: string,
+    sowingDate: string
+  ): Promise<PestUploadResponse> {
+    this.refreshAuthToken();
+    if (!this.validateAuth()) {
+      throw new Error('Authentication required');
+    }
+
+    const formData = new FormData();
+    formData.append('image', image, image.name || 'crop-image.jpg');
+    formData.append('crop_id', cropId.trim());
+    formData.append('crop_type', cropType.trim().toLowerCase());
+    formData.append('sowing_date', sowingDate);
+
+    const response = await fetch(`${this.apiUrl}/api/upload/`, {
+      method: 'POST',
+      headers: this.getAuthHeaders(),
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const errorBody = await response.text();
+      throw new Error(`Upload failed (${response.status}): ${errorBody}`);
+    }
+
+    return response.json() as Promise<PestUploadResponse>;
   }
 
   async getSuggestions(session: string, targetLang: string = 'mr'): Promise<SuggestionItem[]> {
