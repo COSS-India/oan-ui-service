@@ -25,13 +25,7 @@ import { useTts } from "@/hooks/use-tts";
 import { FeedbackForm } from "@/components/FeedbackForm";
 import { useAuth } from "@/contexts/AuthContext";
 import { PestDetectionDialog } from "@/components/PestDetectionDialog";
-import {
-  predictDisease,
-  getAdvisory,
-  storeResponse,
-  FALLBACK_CROPS,
-  type AdvisoryResult,
-} from "@/lib/pest-detection-api";
+import { FALLBACK_CROPS, storePestFeedback } from "@/lib/pest-detection-api";
 
 interface Message {
   id: string;
@@ -47,6 +41,8 @@ interface Message {
   errorTranslationKey?: string;
   responseLanguage?: string;
   imageUrl?: string;
+  isPestDetectionResponse?: boolean;
+  pestUploadId?: string;
 }
 
 interface ChatResponse {
@@ -572,31 +568,6 @@ export function ChatInterface() {
     }
   };
 
-  // Pest detection submit handler
-  const getLocalizedFieldValue = (
-    values: { en?: string; mr?: string; hi?: string },
-    fallback = ""
-  ): string => {
-    const preferredValues = language === "mr"
-      ? [values.mr, values.en]
-      : language === "hi"
-        ? [values.hi, values.en]
-        : [values.en];
-
-    const selected = preferredValues.find(
-      (value) => typeof value === "string" && value.trim().length > 0
-    );
-
-    return selected || fallback;
-  };
-
-  const formatAdvisoryText = (value: string): string => {
-    const normalized = value.replace(/\r\n/g, "\n").trim();
-    if (!normalized) return "";
-    // Keep numbered advisory points readable in markdown.
-    return normalized.replace(/\n(?=\d+\.)/g, "\n\n");
-  };
-
   const handlePestDetectionSubmit = async (
     cropId: string,
     cropName: string,
@@ -631,142 +602,65 @@ export function ChatInterface() {
     scrollToBottomOfMessages();
 
     try {
-      // Step 1: Predict (always use English crop name for API)
-      const prediction = await predictDisease(cropTypeForApi, sowingDate, image, cropIdForApi);
-
-      if (!prediction.success || !prediction.data?.predictions?.length) {
-        const resultLabel = (t("pestDetection.resultLabel") as string) || "Pest/Disease";
-        const unknownDisease = (t("pestDetection.unknownDisease") as string) || "Unknown Disease";
-        const unknownDiseaseMessage = (t("pestDetection.unknownDiseaseMessage", { crop: cropName }) as string)
-          || `The system could not identify a specific disease for ${cropName}. Please try again with a clearer image or consult a local agriculture officer.`;
-
-        updateMessage(loadingMessageId, {
-          text: `### ${resultLabel}: ${unknownDisease}\n\n${unknownDiseaseMessage}`,
-          isLoading: false,
-          isStreaming: false,
-        });
-        // Store even unsuccessful responses
-        try {
-          await storeResponse(
-            image,
-            cropIdForApi,
-            sowingDate,
-            false,
-            JSON.stringify(prediction),
-            user?.username || "0",
-            "0"
-          );
-        } catch (storeErr) {
-          console.error("Failed to store response:", storeErr);
-        }
-        return;
-      }
-
-      const topPrediction = prediction.data.predictions[0];
-      const diseaseId = topPrediction.disease_id;
-      const diseaseType = topPrediction.disease_type;
-      const confidence = (topPrediction.confidence_score * 100).toFixed(1);
-      const noInformation = (t("pestDetection.noInformation") as string) || "No information available.";
-
-      // Step 2: Get advisory
-      let advisory: AdvisoryResult = {
-        preventive_measures: noInformation,
-        curative_measures: noInformation,
-      };
-      try {
-        advisory = await getAdvisory(diseaseId, cropIdForApi);
-      } catch (advErr) {
-        console.error("Failed to get advisory:", advErr);
-      }
-
-      const diseaseTypeText = getLocalizedFieldValue(
-        {
-          en: advisory.disease_pest_en || advisory.disease_pest || diseaseType,
-          mr: advisory.disease_pest_mr,
-          hi: advisory.disease_pest_hi,
-        },
-        diseaseType
+      const upload = await apiService.uploadPestImage(
+        image,
+        cropIdForApi,
+        cropTypeForApi,
+        sowingDate
       );
 
-      let preventiveMeasures = formatAdvisoryText(
-        getLocalizedFieldValue(
-          {
-            en: advisory.preventive_measures_en || advisory.preventive_measures,
-            mr: advisory.preventive_measures_mr,
-            hi: advisory.preventive_measures_hi,
-          },
-          noInformation
-        )
-      ) || noInformation;
-
-      let curativeMeasures = formatAdvisoryText(
-        getLocalizedFieldValue(
-          {
-            en: advisory.curative_measures_en || advisory.curative_measures,
-            mr: advisory.curative_measures_mr,
-            hi: advisory.curative_measures_hi,
-          },
-          noInformation
-        )
-      ) || noInformation;
-
-      const isUnknownDisease = [diseaseType, advisory.disease_pest, diseaseTypeText]
-        .filter((value): value is string => typeof value === "string")
-        .some((value) => value.toLowerCase().includes("unknown disease"));
-
-      if (isUnknownDisease) {
-        preventiveMeasures = (t("pestDetection.unknownPreventiveMeasures") as string) || preventiveMeasures;
-        curativeMeasures = (t("pestDetection.unknownCurativeMeasures", { crop: cropName }) as string) || curativeMeasures;
+      if (upload.status !== "success") {
+        throw new Error(upload.message || "Upload failed");
       }
 
-      // Step 3: Store response
-      try {
-        await storeResponse(
-          image,
-          cropIdForApi,
-          sowingDate,
-          true,
-          JSON.stringify(prediction),
-          user?.username || "0",
-          diseaseId
-        );
-      } catch (storeErr) {
-        console.error("Failed to store response:", storeErr);
-      }
+      const imageId = upload.id || upload.upload_id;
 
-      // Format the result as markdown
-      const resultMarkdown = [
-        `### ${(t("pestDetection.resultLabel") as string) || "Pest/Disease"}: **${diseaseTypeText}**`,
-        `**${(t("pestDetection.confidenceLabel") as string) || "Confidence"}:** ${confidence}%`,
-        `**${(t("pestDetection.cropLabel") as string) || "Crop"}:** ${cropName} | **${(t("pestDetection.sowingDateLabel") as string) || "Sowing Date"}:** ${sowingDate}`,
-        ``,
-        `---`,
-        ``,
-        `#### ${(t("pestDetection.preventiveMeasuresLabel") as string) || "Preventive Measures"}`,
-        preventiveMeasures,
-        ``,
-        `#### ${(t("pestDetection.curativeMeasuresLabel") as string) || "Curative Measures"}`,
-        curativeMeasures,
-      ].join("\n");
-
-      // Update the loading message with the final result
       updateMessage(loadingMessageId, {
-        text: resultMarkdown,
-        isLoading: false,
-        isStreaming: false,
+        isPestDetectionResponse: true,
+        pestUploadId: imageId,
       });
+
+      const cropIdForChat = upload.crop_id || cropIdForApi;
+      const cropTypeForChat =
+        upload.crop_type || cropTypeForApi.trim().toLowerCase();
+      const chatPrompt =
+        (t("pestDetection.chatAnalysisPrompt", {
+          imageId,
+          cropName,
+          sowingDate,
+          crop_id: cropIdForChat,
+          crop_type: cropTypeForChat,
+        }) as string) ||
+        `Please perform pest and disease analysis for the uploaded crop image. Image ID: ${imageId}. Crop: ${cropName}. Sowing date: ${sowingDate}. crop_id: ${cropIdForChat}. crop_type: ${cropTypeForChat}.`;
+
+      await sendMessageToApi(chatPrompt, loadingMessageId);
     } catch (error) {
       console.error("Pest detection failed:", error);
+      const isUploadError = error instanceof Error && error.message.includes("Upload failed");
       updateMessage(loadingMessageId, {
         text: "",
         isLoading: false,
         isErrorMessage: true,
-        errorTranslationKey: "pestDetection.errorGeneric",
+        errorTranslationKey: isUploadError
+          ? "pestDetection.uploadError"
+          : "pestDetection.errorGeneric",
       });
       forceUIRefresh();
     } finally {
       setIsMessageLoading(false);
       setIsPestDetectionSubmitting(false);
+    }
+  };
+
+  const submitPestFeedbackIfApplicable = async (
+    message: Message,
+    feedback: string
+  ) => {
+    if (!message.isPestDetectionResponse || !message.pestUploadId) return;
+    try {
+      await storePestFeedback(message.pestUploadId, feedback);
+    } catch (error) {
+      console.error("Failed to store pest detection feedback:", error);
     }
   };
 
@@ -794,6 +688,8 @@ export function ChatInterface() {
     logFeedbackEvent(message.questionId || messageId, sessionId, "Liked the response", "like", message.questionText || "", message.text);
     endTelemetry();
 
+    void submitPestFeedbackIfApplicable(message, "Liked the response");
+
     // Send a generic feedback message
     toast({
       title: t("toast.feedbackThankYou.title") as string,
@@ -813,6 +709,9 @@ export function ChatInterface() {
     startTelemetry(sessionId, { preferred_username: getTelemetryUid(), email: user?.email || "default-email" });
     logFeedbackEvent(message.questionId || dislikedMessageId, sessionId, feedbackText, "dislike", message.questionText || "", message.text);
     endTelemetry();
+
+    void submitPestFeedbackIfApplicable(message, feedbackText);
+
     setShowFeedbackDialog(false);
     setFeedbackText("");
     setDislikedMessageId(null);

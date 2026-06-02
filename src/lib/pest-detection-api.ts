@@ -9,43 +9,6 @@ export interface CropItem {
   crop_name_hi?: string;
 }
 
-export interface PredictionEntry {
-  disease_type: string;
-  disease_id: string;
-  confidence_score: number;
-}
-
-export interface PredictionResult {
-  success: boolean;
-  message: string;
-  data: {
-    crop_id: number;
-    crop_type: string;
-    sowing_date: string;
-    predictions: PredictionEntry[];
-    created_at: string;
-  };
-}
-
-export interface AdvisoryResult {
-  crop_id?: number;
-  crop_name?: string;
-  disease_pest?: string;
-  disease_pest_mr?: string;
-  disease_pest_hi?: string;
-  disease_pest_en?: string;
-  preventive_measures: string;
-  preventive_measures_en?: string;
-  preventive_measures_mr?: string;
-  preventive_measures_hi?: string;
-  curative_measures: string;
-  curative_measures_en?: string;
-  curative_measures_mr?: string;
-  curative_measures_hi?: string;
-  note?: string;
-  [key: string]: unknown;
-}
-
 interface CropApiItem {
   id?: number | string;
   crop_id?: number | string;
@@ -60,7 +23,7 @@ interface CropApiItem {
 // ---- API Base URLs ----
 
 const PEST_API_BASE = 'https://stage-farmers-app-api.mahapocra.gov.in';
-const PREDICT_API_BASE = 'https://ndksp-tih.mahapocra.gov.in';
+const PEST_FEEDBACK_API_BASE = 'https://farmers-app-api.mahapocra.gov.in';
 
 const asArray = <T>(payload: unknown): T[] => {
   if (Array.isArray(payload)) return payload as T[];
@@ -121,130 +84,34 @@ export const FALLBACK_CROPS: CropItem[] = [
 // ---- Service Functions ----
 
 /**
- * Step 1: Get available crops for pest detection dropdown
+ * Get available crops for pest detection dropdown.
+ * API returns { status, data: [{ id, name, name_mr?, name_hi? }, ...] }.
  */
 export async function getCrops(): Promise<CropItem[]> {
   const response = await axios.get(
     `${PEST_API_BASE}/pestdetectionServices/get-crops-for-pest-detection`
   );
-  return asArray<CropApiItem>(response.data)
+  const crops = asArray<CropApiItem>(response.data)
     .map(normalizeCrop)
     .filter((crop): crop is CropItem => crop !== null);
+
+  return crops;
 }
 
 /**
- * Step 2: Submit image + metadata to the prediction engine
+ * Store user feedback for a pest detection response (upload id from /api/upload/).
  */
-export async function predictDisease(
-  cropType: string,
-  sowingDate: string,
-  image: File,
-  cropId: string
-): Promise<PredictionResult> {
-  const formData = new FormData();
-  formData.append('crop_type', cropType.trim());
-  formData.append('sowing_date', sowingDate);
-  // Explicit filename helps backends that infer file type from multipart filename.
-  formData.append('image', image, image.name || 'crop-image.jpg');
-  formData.append('crop_id', cropId.trim());
-
-  try {
-    // Let the browser set multipart boundary automatically.
-    const response = await axios.post(`${PREDICT_API_BASE}/api/v1/predict`, formData);
-    return response.data;
-  } catch (error) {
-    if (axios.isAxiosError(error)) {
-      const backendMessage =
-        typeof error.response?.data === 'string'
-          ? error.response.data
-          : JSON.stringify(error.response?.data ?? {});
-      throw new Error(
-        `Predict API failed (${error.response?.status ?? 'unknown'}): ${backendMessage}`
-      );
-    }
-    throw error;
-  }
-}
-
-/**
- * Step 3: Get advisory (preventive & curative measures) for a disease
- */
-export async function getAdvisory(pdId: string, cropId?: string): Promise<AdvisoryResult> {
-  const formData = new FormData();
-  formData.append('pd_id', pdId);
-
-  const response = await axios.post(
-    `${PEST_API_BASE}/pestdetectionServices/crop_pd_advisory`,
-    formData
-  );
-  const payload = response.data;
-  const fallback: AdvisoryResult = {
-    preventive_measures: "",
-    curative_measures: "",
-  };
-
-  if (payload && typeof payload === 'object' && !Array.isArray(payload)) {
-    const directPayload = payload as Partial<AdvisoryResult>;
-    if (
-      typeof directPayload.preventive_measures === 'string' ||
-      typeof directPayload.curative_measures === 'string'
-    ) {
-      return {
-        ...directPayload,
-        preventive_measures: toString(directPayload.preventive_measures) ?? "",
-        curative_measures: toString(directPayload.curative_measures) ?? "",
-      };
-    }
-  }
-
-  const advisoryList = asArray<Partial<AdvisoryResult>>(payload);
-
-  let selectedAdvisory: Partial<AdvisoryResult> | undefined;
-  if (cropId) {
-    const cropIdNum = Number(cropId);
-    selectedAdvisory = advisoryList.find((item) => {
-      if (item && typeof item.crop_id === "number" && Number.isFinite(cropIdNum)) {
-        return item.crop_id === cropIdNum;
-      }
-      return String(item?.crop_id ?? "") === String(cropId);
-    });
-  }
-
-  const firstAdvisory = selectedAdvisory || advisoryList[0];
-
-  if (!firstAdvisory) return fallback;
-
-  return {
-    ...firstAdvisory,
-    preventive_measures: toString(firstAdvisory.preventive_measures) ?? "",
-    curative_measures: toString(firstAdvisory.curative_measures) ?? "",
-  };
-}
-
-/**
- * Step 4: Store the prediction + image for analytics
- */
-export async function storeResponse(
-  image: File,
-  cropId: string,
-  sowingDate: string,
-  isSuccess: boolean,
-  response: string,
-  userId: string,
-  pdId: string
+export async function storePestFeedback(
+  uploadId: string,
+  feedback: string
 ): Promise<unknown> {
   const formData = new FormData();
-  formData.append('image', image);
-  formData.append('crop_id', cropId);
-  formData.append('sowing_date', sowingDate);
-  formData.append('is_success', String(isSuccess));
-  formData.append('response', response);
-  formData.append('user_id', userId);
-  formData.append('pd_id', pdId);
+  formData.append('id', uploadId.trim());
+  formData.append('feedback', feedback.trim());
 
-  const res = await axios.post(
-    `${PEST_API_BASE}/pestdetectionServices/store-response-against-crop-image`,
+  const response = await axios.post(
+    `${PEST_FEEDBACK_API_BASE}/pestdetectionServices/store-feedback`,
     formData
   );
-  return res.data;
+  return response.data;
 }
