@@ -47,10 +47,46 @@ This application uses **JWT (JSON Web Token)** authentication with **RS256 algor
 
 ### How Authentication Works
 
-1. **Token-based Access:** Users access the app by visiting: `http://localhost:5173?token=YOUR_JWT_TOKEN`
-2. **Token Validation:** The app validates the JWT using RSA public key cryptography
-3. **Session Storage:** Valid tokens are stored locally for subsequent visits
-4. **Automatic Cleanup:** The token parameter is removed from the URL after successful authentication
+Integrators can use **either** method (checked in this order):
+
+1. **URL query param:** `http://localhost:5173/chat?token=YOUR_JWT_TOKEN` — validated, stored in `localStorage`, then removed from the URL
+2. **Stored session:** existing `auth_jwt` in `localStorage` from a prior visit
+3. **Iframe postMessage:** parent sends the JWT after the iframe emits `oan-auth-ready` (allowlisted parent origins; default includes `https://vistaar.maharashtra.gov.in`)
+
+All paths validate the JWT with the configured RS256 public key and store it in `localStorage` for API `Authorization: Bearer` headers.
+
+#### Iframe postMessage (parent integrator)
+
+Configure allowed parent origins at build time:
+
+```bash
+VITE_ALLOWED_PARENT_ORIGINS=https://parent-app.example.com
+```
+
+**Parent page:**
+
+```javascript
+const IFRAME_ORIGIN = 'https://your-oan-ui.example.com';
+const iframe = document.getElementById('oan-chat');
+let tokenSent = false;
+
+window.addEventListener('message', (event) => {
+  if (event.origin !== IFRAME_ORIGIN) return;
+  if (event.data?.type !== 'oan-auth-ready' || tokenSent) return;
+
+  iframe.contentWindow.postMessage(
+    { type: 'oan-set-token', token: yourShortLivedJwt },
+    IFRAME_ORIGIN
+  );
+  tokenSent = true;
+});
+```
+
+**Iframe → parent:** `oan-auth-ready` | `oan-auth-success` | `oan-auth-failure`
+
+**Parent → iframe:** `oan-set-token` with `{ token: string }`
+
+See **[docs/iframe-integration.md](docs/iframe-integration.md)** for the full integrator guide (security, troubleshooting, Method A vs B).
 
 ### JWT Token Requirements
 

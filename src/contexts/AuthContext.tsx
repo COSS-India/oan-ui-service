@@ -1,6 +1,15 @@
-import { createContext, useContext, ReactNode, useState, useEffect } from 'react';
+import { createContext, useContext, ReactNode, useState, useEffect, useRef, useCallback } from 'react';
 import { jwtVerify, importSPKI, JWTPayload } from 'jose';
 import { setTelemetryUserData } from '../lib/telemetry';
+import { environment } from '@/config/environment';
+import apiService from '@/lib/api';
+import {
+  isEmbedded,
+  isAuthSetTokenMessage,
+  notifyParentAuthReady,
+  notifyParentAuthSuccess,
+  notifyParentAuthFailure,
+} from '@/lib/auth-messaging';
 
 // Constants
 const JWT_STORAGE_KEY = 'auth_jwt';
@@ -67,136 +76,69 @@ cYYzlCVV0lzJ+Sa98Fvpb/tOMY6XqoTzmkU/WlRoYY7jsqFykAcbOpncyO+lm+WW
 rQIDAQAB
 -----END PUBLIC KEY-----`;
 
-  // Initialize auth state on component mount
-  useEffect(() => {
-    const initAuth = async () => {
-      try {
-        setIsLoading(true);
-        // Import the public key
-        const importedPublicKey = await importSPKI(publicKeyPEM, 'RS256');
-        setPublicKey(importedPublicKey);
-
-        // Check URL params first for new JWT
-        const urlParams = new URLSearchParams(window.location.search);
-        const tokenFromUrl = urlParams.get('token');
-
-        // If JWT exists in URL, validate and store it
-        if (tokenFromUrl) {
-          if (importedPublicKey) {
-            const result = await validateJWT(tokenFromUrl, importedPublicKey);
-            if (result.isValid) {
-              storeJWT(tokenFromUrl);
-              createUserFromPayload(result.payload);
-              // Clean up URL by removing the JWT parameter
-              const newUrl = window.location.pathname + window.location.hash;
-              window.history.replaceState({}, document.title, newUrl);
-            } else {
-              createUserFromPayload(null);
-            }
-          } else {
-               console.error('Public key not loaded.');
-               createUserFromPayload(null);
-          }
-        }
-        // Otherwise, check for JWT in localStorage
-        else {
-          const storedToken = getStoredJWT();
-          if (storedToken) {
-             if (importedPublicKey) {
-              const result = await validateJWT(storedToken, importedPublicKey);
-              if (result.isValid) {
-                createUserFromPayload(result.payload);
-              } else {
-                // Token is invalid or expired, remove it
-                localStorage.removeItem(JWT_STORAGE_KEY);
-                createUserFromPayload(null);
-              }
-             } else {
-               console.error('Public key not loaded.');
-               createUserFromPayload(null);
-             }
-          } else {
-            createUserFromPayload(null);
-          }
-        }
-      } catch (error) {
-        console.error("Auth initialization error:", error);
-        createUserFromPayload(null);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    initAuth();
-  }, [publicKeyPEM]);
+  const embedAuthSettledRef = useRef(false);
 
   // Create a user object from JWT payload
   const createUserFromPayload = (payload: JWTPayload | null) => {
     if (!payload) {
       setUser(null);
       setLocations([]);
-      // Clear telemetry data when user is not available
       setTelemetryUserData({});
       return;
     }
-    
-    // Extract name from payload, use fallbacks
-    const name = payload.name as string || 'Anonymous User';
-    
-    // For email, try to get from payload or use fallback
-    // let email = 'user@example.com';
+
+    const name = (payload.name as string) || 'Anonymous User';
+
     let email = '';
     if (payload.email) {
       email = payload.email as string;
     } else if (payload.sub) {
       email = `${payload.sub}@example.com`;
     }
-    
-    // Extract mobile from payload, use fallback
-    const mobile = (payload as any)?.mobile as string || '';
-    
-    // Extract guest user flag
-    const is_guest_user = (payload as any)?.is_guest_user === true;
 
-    // Extract additional user fields
-    const role = (payload as any)?.role as string || '';
-    const farmer_id = (payload as any)?.farmer_id as string || '';
-    const unique_id = (payload as any)?.unique_id as string | number | undefined;
-    
+    const mobile = (payload as { mobile?: string })?.mobile || '';
+    const is_guest_user = (payload as { is_guest_user?: boolean })?.is_guest_user === true;
+    const role = (payload as { role?: string })?.role || '';
+    const farmer_id = (payload as { farmer_id?: string })?.farmer_id || '';
+    const unique_id = (payload as { unique_id?: string | number })?.unique_id;
+
     setUser({
       authenticated: true,
       username: name,
       email: email,
       mobile: mobile,
-      is_guest_user: is_guest_user
+      is_guest_user: is_guest_user,
     });
 
-    // Extract locations array from JWT payload
-    const locationsData = (payload as any)?.locations as Location[] | undefined;
+    const locationsData = (payload as { locations?: Location[] })?.locations;
     const validatedLocations: Location[] = [];
-    
+
     if (Array.isArray(locationsData)) {
       locationsData.forEach((loc) => {
-        if (loc && typeof loc === 'object' && 
-            typeof loc.location_type === 'string' &&
-            typeof loc.district === 'string' &&
-            typeof loc.village === 'string' &&
-            typeof loc.taluka === 'string' &&
-            ['registered_location', 'device_location', 'agristack_location'].includes(loc.location_type)) {
+        if (
+          loc &&
+          typeof loc === 'object' &&
+          typeof loc.location_type === 'string' &&
+          typeof loc.district === 'string' &&
+          typeof loc.village === 'string' &&
+          typeof loc.taluka === 'string' &&
+          ['registered_location', 'device_location', 'agristack_location'].includes(
+            loc.location_type
+          )
+        ) {
           validatedLocations.push({
-            location_type: loc.location_type as 'registered_location' | 'device_location' | 'agristack_location',
+            location_type: loc.location_type,
             district: loc.district,
             village: loc.village,
             taluka: loc.taluka,
-            lgd_code: String((loc as any).lgd_code ?? '')
+            lgd_code: String((loc as { lgd_code?: string | number }).lgd_code ?? ''),
           });
         }
       });
     }
-    
+
     setLocations(validatedLocations);
 
-    // Set comprehensive telemetry data with all location types
     setTelemetryUserData({
       mobile: mobile,
       username: name,
@@ -204,54 +146,53 @@ rQIDAQAB
       role: role,
       farmer_id: farmer_id,
       unique_id: unique_id,
-      locations: validatedLocations
+      locations: validatedLocations,
     });
   };
 
-  // Store JWT in localStorage with expiration
   const storeJWT = (token: string) => {
     try {
       const now = new Date();
       const expiryDate = new Date(now);
       expiryDate.setDate(now.getDate() + JWT_EXPIRY_DAYS);
-      
+
       const tokenData = {
         token,
-        expiry: expiryDate.getTime()
+        expiry: expiryDate.getTime(),
       };
-      
+
       localStorage.setItem(JWT_STORAGE_KEY, JSON.stringify(tokenData));
       return true;
     } catch (error) {
-      console.error("Error storing JWT:", error);
+      console.error('Error storing JWT:', error);
       return false;
     }
   };
 
-  // Retrieve JWT from localStorage
   const getStoredJWT = (): string | null => {
     try {
       const tokenData = localStorage.getItem(JWT_STORAGE_KEY);
       if (!tokenData) return null;
-      
+
       const parsedData = JSON.parse(tokenData);
       const now = new Date().getTime();
-      
-      // Check if token is expired
+
       if (now > parsedData.expiry) {
         localStorage.removeItem(JWT_STORAGE_KEY);
         return null;
       }
-      
+
       return parsedData.token;
     } catch (error) {
-      console.error("Error retrieving JWT:", error);
+      console.error('Error retrieving JWT:', error);
       return null;
     }
   };
 
-  // Function to validate JWT and extract payload
-  async function validateJWT(token: string, key: CryptoKey): Promise<{ isValid: boolean; payload: JWTPayload | null }> {
+  async function validateJWT(
+    token: string,
+    key: CryptoKey
+  ): Promise<{ isValid: boolean; payload: JWTPayload | null }> {
     try {
       const { payload } = await jwtVerify(token, key);
       return { isValid: true, payload };
@@ -261,20 +202,160 @@ rQIDAQAB
     }
   }
 
-  // Public method to set auth token
-  const setAuthToken = async (token: string): Promise<boolean> => {
-    try {
-      if (publicKey) {
-        const result = await validateJWT(token, publicKey);
-        if (result.isValid) {
-          storeJWT(token);
-          createUserFromPayload(result.payload);
-          return true;
-        }
+  const applyValidatedToken = useCallback((token: string, payload: JWTPayload) => {
+    storeJWT(token);
+    createUserFromPayload(payload);
+    apiService.updateAuthToken();
+  }, []);
+
+  const authenticateWithToken = useCallback(
+    async (token: string, key: CryptoKey): Promise<boolean> => {
+      const result = await validateJWT(token, key);
+      if (result.isValid && result.payload) {
+        applyValidatedToken(token, result.payload);
+        return true;
       }
       return false;
+    },
+    [applyValidatedToken]
+  );
+
+  const stripTokenFromUrl = () => {
+    const newUrl = window.location.pathname + window.location.hash;
+    window.history.replaceState({}, document.title, newUrl);
+  };
+
+  const tryEmbedPostMessageAuth = (
+    importedPublicKey: CryptoKey,
+    settleEmbedAuth: () => void,
+    registerCleanup: (fn: () => void) => void
+  ): boolean => {
+    const canUsePostMessage =
+      isEmbedded() && environment.allowedParentOrigins.length > 0;
+
+    if (!canUsePostMessage) return false;
+
+    const handleParentToken = async (event: MessageEvent) => {
+      if (!environment.allowedParentOrigins.includes(event.origin)) return;
+      if (!isAuthSetTokenMessage(event.data)) return;
+      // Claim handling synchronously so concurrent parent retries cannot race.
+      if (embedAuthSettledRef.current) return;
+      embedAuthSettledRef.current = true;
+
+      const ok = await authenticateWithToken(event.data.token, importedPublicKey);
+
+      if (ok) {
+        notifyParentAuthSuccess(event.origin);
+      } else {
+        notifyParentAuthFailure(event.origin, 'invalid_token');
+        createUserFromPayload(null);
+      }
+      settleEmbedAuth();
+    };
+
+    window.addEventListener('message', handleParentToken);
+    registerCleanup(() => window.removeEventListener('message', handleParentToken));
+
+    notifyParentAuthReady();
+    return true;
+  };
+
+  // Initialize auth: URL ?token= → localStorage → postMessage (iframe)
+  useEffect(() => {
+    let cancelled = false;
+    let embedAuthTimeoutId: ReturnType<typeof setTimeout> | undefined;
+    let removeMessageListener: (() => void) | undefined;
+
+    const finishLoading = () => {
+      if (!cancelled) setIsLoading(false);
+    };
+
+    const settleEmbedAuth = () => {
+      if (embedAuthTimeoutId) clearTimeout(embedAuthTimeoutId);
+      embedAuthTimeoutId = undefined;
+      removeMessageListener?.();
+      removeMessageListener = undefined;
+      finishLoading();
+    };
+
+    const initAuth = async () => {
+      try {
+        setIsLoading(true);
+        embedAuthSettledRef.current = false;
+
+        const importedPublicKey = await importSPKI(publicKeyPEM, 'RS256');
+        if (cancelled) {
+          finishLoading();
+          return;
+        }
+        setPublicKey(importedPublicKey);
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const tokenFromUrl = urlParams.get('token');
+
+        if (tokenFromUrl) {
+          const ok = await authenticateWithToken(tokenFromUrl, importedPublicKey);
+          if (ok) stripTokenFromUrl();
+          else createUserFromPayload(null);
+          finishLoading();
+          return;
+        }
+
+        const storedToken = getStoredJWT();
+        if (storedToken) {
+          const ok = await authenticateWithToken(storedToken, importedPublicKey);
+          if (ok) {
+            finishLoading();
+            return;
+          }
+          localStorage.removeItem(JWT_STORAGE_KEY);
+        }
+
+        if (
+          tryEmbedPostMessageAuth(importedPublicKey, settleEmbedAuth, (fn) => {
+            removeMessageListener = fn;
+          })
+        ) {
+          embedAuthTimeoutId = setTimeout(() => {
+            if (!embedAuthSettledRef.current) {
+              embedAuthSettledRef.current = true;
+              createUserFromPayload(null);
+              environment.allowedParentOrigins.forEach((origin) =>
+                notifyParentAuthFailure(origin, 'timeout')
+              );
+              settleEmbedAuth();
+            }
+          }, environment.embedAuthTimeoutMs);
+          return;
+        }
+
+        createUserFromPayload(null);
+        finishLoading();
+      } catch (error) {
+        console.error('Auth initialization error:', error);
+        createUserFromPayload(null);
+        finishLoading();
+      }
+    };
+
+    initAuth();
+
+    return () => {
+      cancelled = true;
+      if (embedAuthTimeoutId) clearTimeout(embedAuthTimeoutId);
+      removeMessageListener?.();
+    };
+  }, [publicKeyPEM, authenticateWithToken]);
+
+  // Public method to set auth token (e.g. custom integrator flows)
+  const setAuthToken = async (token: string): Promise<boolean> => {
+    try {
+      if (!publicKey) return false;
+      const ok = await authenticateWithToken(token, publicKey);
+      if (!ok) createUserFromPayload(null);
+      return ok;
     } catch (error) {
-      console.error("Error setting auth token:", error);
+      console.error('Error setting auth token:', error);
       return false;
     }
   };
@@ -302,8 +383,8 @@ rQIDAQAB
     setUser(null);
     setLocations([]);
     localStorage.removeItem(JWT_STORAGE_KEY);
-    // Clear all telemetry data on logout
     setTelemetryUserData({});
+    apiService.updateAuthToken();
   };
 
   return (
