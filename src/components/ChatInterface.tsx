@@ -170,9 +170,9 @@ export function ChatInterface() {
     );
   };
 
-  // Helper to get telemetry uid - returns "guest" for guest users
+  // Helper to get telemetry uid from the JWT user id only.
   const getTelemetryUid = useCallback(() => {
-    return user?.is_guest_user ? "guest" : (user?.username || "default-username");
+    return user?.telemetryUsername || "";
   }, [user]);
 
   // Notify host app (iframe parent) when guest limit is reached
@@ -454,7 +454,7 @@ export function ChatInterface() {
           errorTranslationKey: 'toast.apiEmptyResponse.description',
           isLoading: false,
         });
-        startTelemetry(sessionId, { preferred_username: user?.username || "default-username", email: user?.email || "default-email" });
+        startTelemetry(sessionId, { preferred_username: getTelemetryUid(), email: user?.email || "default-email" });
         logErrorEvent(questionId, sessionId, "Empty response from API");
         endTelemetry();
       }

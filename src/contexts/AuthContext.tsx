@@ -1,7 +1,7 @@
 import { createContext, useContext, ReactNode, useState, useEffect } from 'react';
 import { jwtVerify, importSPKI, JWTPayload } from 'jose';
 import { setTelemetryUserData } from '../lib/telemetry';
-import { resolveUserDisplayName } from '../lib/user';
+import { resolveTelemetryUsername, resolveUserDisplayName } from '../lib/user';
 
 // Constants
 const JWT_STORAGE_KEY = 'auth_jwt';
@@ -20,6 +20,7 @@ export interface Location {
 export interface User {
   authenticated: boolean;
   username: string;
+  telemetryUsername: string;
   email: string;
   mobile: string;
   is_guest_user?: boolean;
@@ -143,6 +144,7 @@ rQIDAQAB
     
     // Extract display name from payload, using a readable fallback for missing/numeric names.
     const name = resolveUserDisplayName(payload as Record<string, unknown>);
+    const telemetryUsername = resolveTelemetryUsername(payload as Record<string, unknown>);
     
     // For email, try to get from payload or use fallback
     // let email = 'user@example.com';
@@ -167,6 +169,7 @@ rQIDAQAB
     setUser({
       authenticated: true,
       username: name,
+      telemetryUsername: telemetryUsername,
       email: email,
       mobile: mobile,
       is_guest_user: is_guest_user
@@ -200,7 +203,7 @@ rQIDAQAB
     // Set comprehensive telemetry data with all location types
     setTelemetryUserData({
       mobile: mobile,
-      username: name,
+      username: telemetryUsername,
       email: email,
       role: role,
       farmer_id: farmer_id,
