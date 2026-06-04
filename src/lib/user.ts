@@ -1,4 +1,15 @@
 const toText = (value: unknown) => (typeof value === "string" ? value.trim() : "");
+const toTelemetryText = (value: unknown) => {
+  if (typeof value === "string") {
+    return value.trim();
+  }
+
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return String(value);
+  }
+
+  return "";
+};
 
 export const DEFAULT_USER_DISPLAY_NAME = "Test User";
 
@@ -23,6 +34,10 @@ export const resolveUserDisplayName = (user: Record<string, unknown>): string =>
   }
 
   return DEFAULT_USER_DISPLAY_NAME;
+};
+
+export const resolveTelemetryUsername = (user: Record<string, unknown>): string => {
+  return toTelemetryText(user.name);
 };
 
 export const getUserInitials = (value?: string | null): string => {
