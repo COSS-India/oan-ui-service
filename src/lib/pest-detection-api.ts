@@ -1,4 +1,5 @@
 import axios from 'axios';
+import apiService from '@/lib/api';
 
 // ---- Interfaces ----
 
@@ -22,7 +23,6 @@ interface CropApiItem {
 
 // ---- API Base URLs ----
 
-const PEST_API_BASE = 'https://stage-farmers-app-api.mahapocra.gov.in';
 const PEST_FEEDBACK_API_BASE = 'https://farmers-app-api.mahapocra.gov.in';
 
 const asArray = <T>(payload: unknown): T[] => {
@@ -88,10 +88,8 @@ export const FALLBACK_CROPS: CropItem[] = [
  * API returns { status, data: [{ id, name, name_mr?, name_hi? }, ...] }.
  */
 export async function getCrops(): Promise<CropItem[]> {
-  const response = await axios.get(
-    `${PEST_API_BASE}/pestdetectionServices/get-crops-for-pest-detection`
-  );
-  const crops = asArray<CropApiItem>(response.data)
+  const data = await apiService.getPestDetectionCrops();
+  const crops = asArray<CropApiItem>(data)
     .map(normalizeCrop)
     .filter((crop): crop is CropItem => crop !== null);
 

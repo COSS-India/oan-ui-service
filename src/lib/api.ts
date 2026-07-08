@@ -242,6 +242,18 @@ class ApiService {
     return response.json() as Promise<PestUploadResponse>;
   }
 
+  async getPestDetectionCrops(): Promise<unknown> {
+    this.refreshAuthToken();
+    if (!this.validateAuth()) {
+      throw new Error('Authentication required');
+    }
+
+    const response = await this.axiosInstance.get('/api/pest-detection/crops', {
+      headers: this.getAuthHeaders()
+    });
+    return response.data;
+  }
+
   async getSuggestions(session: string, targetLang: string = 'mr'): Promise<SuggestionItem[]> {
     try {
       this.refreshAuthToken();
@@ -356,4 +368,4 @@ class ApiService {
 
 // Create a singleton instance
 const apiService = new ApiService();
-export default apiService; 
+export default apiService;
