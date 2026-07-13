@@ -296,3 +296,20 @@ export function getCookie(name: string): string | null {
   return null;
 }
 
+// Collect basic browser/device info sent as `metadata` when minting a token via
+// /api/token. The backend does not require it; it is included for parity/telemetry.
+export function getBrowserInfo(): string {
+  const info = {
+    userAgent: navigator.userAgent,
+    platform: navigator.platform,
+    language: navigator.language,
+    languages: navigator.languages?.join(',') ?? '',
+    screenResolution: `${window.screen.width}x${window.screen.height}`,
+    colorDepth: window.screen.colorDepth,
+    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+    timestamp: new Date().toISOString(),
+  };
+
+  return JSON.stringify(info);
+}
+

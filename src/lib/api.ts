@@ -28,8 +28,16 @@ interface TTSResponse {
   session_id: string;
 }
 
+interface AuthResponse {
+  token: string;
+}
+
 // Constants
 const JWT_STORAGE_KEY = 'auth_jwt';
+
+// App is served under a sub-path on the platform (e.g. /oan); keep in-app redirects
+// (e.g. to the error page) under that base. Env-overridable (VITE_ROUTER_BASEPATH).
+const ROUTER_BASEPATH = (import.meta.env.VITE_ROUTER_BASEPATH ?? '/oan').replace(/\/$/, '');
 
 class ApiService {
   private apiUrl: string = environment.apiUrl;
@@ -86,7 +94,7 @@ class ApiService {
   private redirectToErrorPage(): void {
     // Check if we're in a browser environment and not already on error page
     if (typeof window !== 'undefined' && !window.location.pathname.includes('/error')) {
-      window.location.href = '/error?reason=auth';
+      window.location.href = `${ROUTER_BASEPATH}/error?reason=auth`;
     }
   }
 
@@ -309,6 +317,29 @@ class ApiService {
 
   getSessionId(): string | null {
     return this.currentSessionId;
+  }
+
+  // Mint a fresh JWT from the backend's /api/token endpoint. Used when no valid
+  // token was supplied via the URL / localStorage. The backend signs the token
+  // with its private key; the UI verifies it with the matching public key.
+  async fetchAuthToken(metadata: string): Promise<string> {
+    try {
+      // Don't send auth headers for this call — we're obtaining the token.
+      const response = await axios.post<AuthResponse>(
+        `${this.apiUrl}/api/token`,
+        { metadata },
+        { headers: { 'Content-Type': 'application/json' } }
+      );
+
+      if (response.data?.token) {
+        return response.data.token;
+      }
+
+      throw new Error('No token received from auth endpoint');
+    } catch (error) {
+      console.error('Error fetching auth token:', error);
+      throw error;
+    }
   }
 }
 
