@@ -5,6 +5,22 @@
 declare let Telemetry: any;
 declare let AuthTokenGenerate: any;
 
+// Telemetry is best-effort: it must NEVER throw into the caller, because the chat send
+// path calls these before the /api/chat/ request fires — a throw there aborts the whole
+// message. Guard every call so a missing SDK, disabled telemetry, or an uninitialized
+// Telemetry.config silently no-ops instead of breaking chat.
+const telemetryEnabled = (): boolean => import.meta.env.VITE_TELEMETRY_ENABLED !== 'false';
+
+// Ready to emit only once Telemetry.start() has populated Telemetry.config. Emitting
+// (Telemetry.response/end) before that reads Telemetry.config.* and throws a TypeError.
+const canEmitTelemetry = (): boolean => {
+  try {
+    return telemetryEnabled() && typeof Telemetry !== 'undefined' && !!Telemetry && !!Telemetry.config;
+  } catch {
+    return false;
+  }
+};
+
 // Store comprehensive telemetry data
 const telemetryData: {
   // User fields
@@ -115,31 +131,38 @@ const getHostUrl = (): string => {
 export const startTelemetry = (sessionId: string, userDetailsObj: { preferred_username: string; email: string }) => {
     // Telemetry can be disabled per-environment (e.g. where the Sunbird
     // observability-service route is not provisioned and POSTs 404).
-    if (import.meta.env.VITE_TELEMETRY_ENABLED === 'false') return;
+    if (!telemetryEnabled()) return;
+    // Never let telemetry init break the caller: if the SDK scripts (Telemetry /
+    // AuthTokenGenerate) failed to load, no-op instead of throwing.
+    if (typeof Telemetry === 'undefined' || typeof AuthTokenGenerate === 'undefined') return;
 
-    const key = "gyte5565fdbgbngfnhgmnhmjgm,jm,";
-    const secret = "gnjhgjugkk";
-    const config = {
-      pdata: {
-        id: "MahaVistaar",
-        ver: "v0.1",
-        pid: "MahaVistaar"
-      },
-      channel: "MahaVistaar-" + getHostUrl(),
-      sid: sessionId,
-      uid: userDetailsObj['preferred_username'],
-      did: userDetailsObj['email'] || "DEFAULT-USER",
-      authtoken: "",
-      // Sunbird observability-service host. Env-overridable per environment so the
-      // telemetry endpoint matches where the backend route actually lives.
-      host: import.meta.env.VITE_TELEMETRY_HOST ?? "/observability-service",
+    try {
+      const key = "gyte5565fdbgbngfnhgmnhmjgm,jm,";
+      const secret = "gnjhgjugkk";
+      const config = {
+        pdata: {
+          id: "MahaVistaar",
+          ver: "v0.1",
+          pid: "MahaVistaar"
+        },
+        channel: "MahaVistaar-" + getHostUrl(),
+        sid: sessionId,
+        uid: userDetailsObj['preferred_username'],
+        did: userDetailsObj['email'] || "DEFAULT-USER",
+        authtoken: "",
+        // Sunbird observability-service host. Env-overridable per environment so the
+        // telemetry endpoint matches where the backend route actually lives.
+        host: import.meta.env.VITE_TELEMETRY_HOST ?? "/observability-service",
+      }
+
+      const startEdata = {};
+      const options = {};
+      const token = AuthTokenGenerate.generate(key, secret);
+      config.authtoken = token;
+      Telemetry.start(config, "content_id", "contetn_ver", startEdata, options);
+    } catch (e) {
+      console.warn('Telemetry start skipped:', e);
     }
-
-    const startEdata = {};
-    const options = {};
-    const token = AuthTokenGenerate.generate(key, secret);
-    config.authtoken = token;
-    Telemetry.start(config, "content_id", "contetn_ver", startEdata, options);
   };
 
 export const logQuestionEvent = (questionId: string, sessionId: string, questionText: string) => {
@@ -184,8 +207,13 @@ export const logQuestionEvent = (questionId: string, sessionId: string, question
     sid: sessionId,
     channel: "MahaVistaar-" + getHostUrl()
   };
-  
-  Telemetry.response(questionData);
+
+  if (!canEmitTelemetry()) return;
+  try {
+    Telemetry.response(questionData);
+  } catch (e) {
+    console.warn('Telemetry response skipped:', e);
+  }
 };
 
 export const logResponseEvent = (questionId: string, sessionId: string, questionText: string, responseText: string) => {
@@ -231,8 +259,13 @@ export const logResponseEvent = (questionId: string, sessionId: string, question
     sid: sessionId,
     channel: "MahaVistaar-" + getHostUrl()
   };
-  
-  Telemetry.response(responseData);
+
+  if (!canEmitTelemetry()) return;
+  try {
+    Telemetry.response(responseData);
+  } catch (e) {
+    console.warn('Telemetry response skipped:', e);
+  }
 };
 
 export const logErrorEvent = (questionId: string, sessionId: string, error: string) => {
@@ -278,7 +311,12 @@ export const logErrorEvent = (questionId: string, sessionId: string, error: stri
     channel: "MahaVistaar-" + getHostUrl()
   };
 
-  Telemetry.response(errorData);
+  if (!canEmitTelemetry()) return;
+  try {
+    Telemetry.response(errorData);
+  } catch (e) {
+    console.warn('Telemetry response skipped:', e);
+  }
 };
 
 export const logFeedbackEvent = (questionId: string, sessionId: string, feedbackText: string, feedbackType: string, questionText: string, responseText: string) => {
@@ -327,11 +365,21 @@ export const logFeedbackEvent = (questionId: string, sessionId: string, feedback
     channel: "MahaVistaar-" + getHostUrl()
   };
 
-  Telemetry.response(feedbackData);
+  if (!canEmitTelemetry()) return;
+  try {
+    Telemetry.response(feedbackData);
+  } catch (e) {
+    console.warn('Telemetry response skipped:', e);
+  }
 };
 
 export const endTelemetry = () => {
-  Telemetry.end({});
+  if (!canEmitTelemetry()) return;
+  try {
+    Telemetry.end({});
+  } catch (e) {
+    console.warn('Telemetry end skipped:', e);
+  }
 };
 
 
