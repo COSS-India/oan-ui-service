@@ -1,5 +1,7 @@
-import { createContext, useContext, ReactNode, useState, useEffect } from 'react';
+import { createContext, useContext, ReactNode, useState, useEffect, useCallback } from 'react';
 import { jwtVerify, importSPKI, JWTPayload } from 'jose';
+import apiService from '@/lib/api';
+import { getBrowserInfo } from '@/lib/utils';
 import { setTelemetryUserData } from '../lib/telemetry';
 import { resolveTelemetryUsername, resolveUserDisplayName } from '../lib/user';
 
@@ -58,16 +60,59 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [publicKey, setPublicKey] = useState<CryptoKey | null>(null);
 
-  // JWT validation public key
-  const publicKeyPEM = `-----BEGIN PUBLIC KEY-----
-MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAkvyeaWfmnLrbNneMjJ16
-+FeHBSAeheTiaUWGidoBI4sYEHxB3rGlr+7WGMyX4rmfFCUDnCIWGuKt32UoA9CZ
-mgE9JCbmJLM1dR35cN9yEUmXggYXRJB8pMqlt+u3jHRFieLumzk1keEiTCsQqvgs
-txlhdBHyPTo7lAcaeFWgoK1CjqDi9xlZuTNUQB8WqhhCtjiEjE1Vj/G6DzYPcJ/g
-eJNM7/Dku5awXwG7lGqjKGuXj+C9fDF/zXrXAhGSVuSMW2hYczmILDyKaes2iH8K
-cYYzlCVV0lzJ+Sa98Fvpb/tOMY6XqoTzmkU/WlRoYY7jsqFykAcbOpncyO+lm+WW
-rQIDAQAB
+  // JWT public key used to verify the auth token. Must match the backend's
+  // jwt_public_key.pem for the target environment. Override per environment with
+  // VITE_JWT_PUBLIC_KEY (newlines may be encoded as \n); falls back to the mh-oan-api
+  // key below so the default build verifies tokens minted by that backend.
+  const publicKeyPEM =
+    (import.meta.env.VITE_JWT_PUBLIC_KEY as string | undefined)?.replace(/\\n/g, "\n") ||
+    `-----BEGIN PUBLIC KEY-----
+MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA7jUqcgYmM98fsaD31Rn2
+l5111Tz3+uz+AiHF0hllyEokMeNaAyYzVBmymotCKm2Qc2AsKVdvctHrdgpJaM+t
+6Kq1tvzBtSw0vSCUziMw0euUiw3ZHQmpsZ65GfAzrxmVIJmDWDZ9I5RT3OSUthwb
+6kRGbrQ6C1g5eb7E2HDcj/Jwe6sj8v4Pe+k6ciLiCn5DYJnIMRv1GbYXLyiepOOU
+grWJVdaIKDFRs9p433w+vFp6yfkuCxhDAIAdUozMwZlHbYDRy96tCYyz+DQT8cda
+u4/6syN34CJNzEn+3wtoKDlBtCLivtmBoRSWRjmNBIopoYvYl/dC1bKGSrq2fqMN
+iQIDAQAB
 -----END PUBLIC KEY-----`;
+
+  // Fetch a fresh JWT from the backend's /api/token endpoint and store it. Used as a
+  // fallback when no valid token was supplied via the URL or localStorage (self-mint
+  // flow, mirroring the OAN-UI hosting setup). Gated on the backend by ENABLE_TOKEN_MINT.
+  const fetchAndStoreNewToken = useCallback(async (importedPublicKey: CryptoKey | null) => {
+    try {
+      const browserInfo = getBrowserInfo();
+      const newToken = await apiService.fetchAuthToken(browserInfo);
+
+      if (importedPublicKey) {
+        const result = await validateJWT(newToken, importedPublicKey);
+        if (result.isValid) {
+          storeJWT(newToken);
+          createUserFromPayload(result.payload);
+        } else {
+          console.error('Received invalid token from /api/token');
+          createUserFromPayload(null);
+        }
+      } else {
+        // Public key unavailable: store the token so API calls can proceed and set a
+        // minimal authenticated guest user.
+        storeJWT(newToken);
+        setUser({
+          authenticated: true,
+          username: 'Guest User',
+          telemetryUsername: 'Guest User',
+          email: '',
+          mobile: '',
+          is_guest_user: true,
+        });
+        setTelemetryUserData({});
+      }
+    } catch (error) {
+      console.error('Failed to fetch auth token from /api/token:', error);
+      createUserFromPayload(null);
+    }
+    // Referenced helpers are stable component closures; deps intentionally omitted.
+  }, []);
 
   // Initialize auth state on component mount
   useEffect(() => {
@@ -93,11 +138,12 @@ rQIDAQAB
               const newUrl = window.location.pathname + window.location.hash;
               window.history.replaceState({}, document.title, newUrl);
             } else {
-              createUserFromPayload(null);
+              // URL token failed verification: fall back to minting a fresh one.
+              await fetchAndStoreNewToken(importedPublicKey);
             }
           } else {
                console.error('Public key not loaded.');
-               createUserFromPayload(null);
+               await fetchAndStoreNewToken(importedPublicKey);
           }
         }
         // Otherwise, check for JWT in localStorage
@@ -109,16 +155,17 @@ rQIDAQAB
               if (result.isValid) {
                 createUserFromPayload(result.payload);
               } else {
-                // Token is invalid or expired, remove it
+                // Stored token invalid/expired: remove it and mint a fresh one.
                 localStorage.removeItem(JWT_STORAGE_KEY);
-                createUserFromPayload(null);
+                await fetchAndStoreNewToken(importedPublicKey);
               }
              } else {
                console.error('Public key not loaded.');
-               createUserFromPayload(null);
+               await fetchAndStoreNewToken(importedPublicKey);
              }
           } else {
-            createUserFromPayload(null);
+            // No token in URL or storage: mint one from the backend.
+            await fetchAndStoreNewToken(importedPublicKey);
           }
         }
       } catch (error) {
@@ -130,7 +177,7 @@ rQIDAQAB
     };
 
     initAuth();
-  }, [publicKeyPEM]);
+  }, [publicKeyPEM, fetchAndStoreNewToken]);
 
   // Create a user object from JWT payload
   const createUserFromPayload = (payload: JWTPayload | null) => {

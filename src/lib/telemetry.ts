@@ -113,6 +113,10 @@ const getHostUrl = (): string => {
 };
 
 export const startTelemetry = (sessionId: string, userDetailsObj: { preferred_username: string; email: string }) => {
+    // Telemetry can be disabled per-environment (e.g. where the Sunbird
+    // observability-service route is not provisioned and POSTs 404).
+    if (import.meta.env.VITE_TELEMETRY_ENABLED === 'false') return;
+
     const key = "gyte5565fdbgbngfnhgmnhmjgm,jm,";
     const secret = "gnjhgjugkk";
     const config = {
@@ -126,7 +130,9 @@ export const startTelemetry = (sessionId: string, userDetailsObj: { preferred_us
       uid: userDetailsObj['preferred_username'],
       did: userDetailsObj['email'] || "DEFAULT-USER",
       authtoken: "",
-      host: "/observability-service",
+      // Sunbird observability-service host. Env-overridable per environment so the
+      // telemetry endpoint matches where the backend route actually lives.
+      host: import.meta.env.VITE_TELEMETRY_HOST ?? "/observability-service",
     }
 
     const startEdata = {};

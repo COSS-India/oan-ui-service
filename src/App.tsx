@@ -20,6 +20,11 @@ import { MAINTENANCE_MODE } from "./config/env";
 
 const queryClient = new QueryClient();
 
+// App is served under a sub-path on the platform (e.g. /oan). The router basename
+// must match Vite's `base` (see vite.config.ts) so deep links like /oan/chat resolve
+// correctly. Env-overridable (VITE_ROUTER_BASEPATH); defaults to /oan. Set to "/" to run at root.
+const ROUTER_BASEPATH = import.meta.env.VITE_ROUTER_BASEPATH ?? "/oan";
+
 // Component to update the document title
 const TitleUpdater = () => {
   const { t } = useLanguage();
@@ -60,7 +65,7 @@ const App = () => {
             <TooltipProvider>
               <Toaster />
               <Sonner />
-              <BrowserRouter>
+              <BrowserRouter basename={ROUTER_BASEPATH}>
                 <Routes>
                   <Route path="/" element={<LandingPage />} />
                   <Route path="/login" element={<LoginPage />} />
